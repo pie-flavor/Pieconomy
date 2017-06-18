@@ -11,6 +11,7 @@ buildscript {
 
 plugins {
     id 'com.github.johnrengelman.shadow' version '1.2.4'
+    id 'flavor.pie.promptsign' version '1.0.2'
 }
 
 group 'flavor.pie'
@@ -43,6 +44,7 @@ dependencies {
 
 jar.enabled = false
 build.dependsOn shadowJar
+signArchives.dependsOn shadowJar
 
 shadowJar {
     classifier = null
