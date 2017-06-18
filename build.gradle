@@ -48,7 +48,7 @@ signArchives.dependsOn shadowJar
 
 shadowJar {
     classifier = null
-    configurations = [project.configurations.compile]
+    configurations = [project.configurations.shadow]
     relocate('kotlin', 'flavor.pie.pieconomy.runtime.kotlin')
     relocate('flavor.pie.kludge', 'flavor.pie.pieconomy.util.kludge')
     relocate('flavor.pie.util.arguments', 'flavor.pie.pieconomy.util.arguments')
