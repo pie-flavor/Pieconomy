@@ -32,7 +32,8 @@ Admins:
 * Change can be made whenever money is paid. Don't assign monetary values to items you don't want people to be able to
   convert between (hence why the default config uses gold ingots, nuggets, and blocks).
 * Whatever the smallest valued item a currency has is, that's the smallest value that is used by the plugin. If you run
-  off of USD, for instance, values (in any transaction) smaller than 1&cent; will be simply ignored.
+  off of USD, but don't implement pennies, for instance, values (in any transaction) smaller than 5&cent; will be simply
+  ignored.
   
 Players:
 
