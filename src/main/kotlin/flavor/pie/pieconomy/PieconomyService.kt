@@ -20,7 +20,7 @@ class PieconomyService : EconomyService {
 
     override fun getOrCreateAccount(uuid: UUID): Optional<UniqueAccount> = cache[uuid].optional
 
-    override fun getOrCreateAccount(identifier: String): Optional<Account> = Optional.empty()
+    override fun getOrCreateAccount(identifier: String): Optional<Account> = serverAccounts.values.first { it.name == identifier }.optional
 
     override fun registerContextCalculator(calculator: ContextCalculator<Account>?) {}
 
@@ -30,6 +30,6 @@ class PieconomyService : EconomyService {
 
     override fun hasAccount(uuid: UUID): Boolean = uuid.user() != null
 
-    override fun hasAccount(identifier: String): Boolean = false
+    override fun hasAccount(identifier: String): Boolean = serverAccounts.values.any { it.name == identifier }
 
 }
