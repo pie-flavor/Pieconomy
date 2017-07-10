@@ -28,6 +28,9 @@ repositories {
     maven {
         url 'https://jitpack.io/'
     }
+    maven {
+        url 'https://repo.bstats.org/content/repositories/releases/'
+    }
 }
 
 configurations {
@@ -40,6 +43,7 @@ dependencies {
     kapt 'org.spongepowered:spongeapi:6.0.0'
     shadow 'com.github.pie-flavor:Kludge:6bf92f6'
     shadow 'com.github.pie-flavor:MoreArguments:d85d7c7'
+    shadow 'org.bstats:bstats-sponge-lite:1.1'
 }
 
 jar.enabled = false
@@ -52,6 +56,7 @@ shadowJar {
     relocate('kotlin', 'flavor.pie.pieconomy.runtime.kotlin')
     relocate('flavor.pie.kludge', 'flavor.pie.pieconomy.util.kludge')
     relocate('flavor.pie.util.arguments', 'flavor.pie.pieconomy.util.arguments')
+    relocate('org.bstats', 'flavor.pie.kludge.metrics')
 }
 
 compileKotlin {

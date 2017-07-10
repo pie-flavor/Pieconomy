@@ -7,6 +7,7 @@ import com.google.inject.Inject
 import flavor.pie.kludge.*
 import ninja.leaping.configurate.commented.CommentedConfigurationNode
 import ninja.leaping.configurate.loader.ConfigurationLoader
+import org.bstats.MetricsLite
 import org.slf4j.Logger
 import org.spongepowered.api.config.ConfigDir
 import org.spongepowered.api.config.DefaultConfig
@@ -33,7 +34,8 @@ import java.util.concurrent.TimeUnit
 class Pieconomy @[Inject] constructor(val logger: Logger,
                                       @[DefaultConfig(sharedRoot = false)] val loader: ConfigurationLoader<CommentedConfigurationNode>,
                                       @[DefaultConfig(sharedRoot = false)] val path: Path,
-                                      @[ConfigDir(sharedRoot = false)] val dir: Path) {
+                                      @[ConfigDir(sharedRoot = false)] val dir: Path,
+                                      val metrics: MetricsLite) {
 
     companion object {
         lateinit var instance: Pieconomy
