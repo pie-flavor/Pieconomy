@@ -69,7 +69,7 @@ object Commands {
             permission("pieconomy.admin.transfer")
         }
         val setbal = CommandSpec {
-            executor(Commands::transfer)
+            executor(Commands::setbal)
             description(!"Set an account's money to a certain value.")
             arguments(
                     AccountElement(!"who"),
