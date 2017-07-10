@@ -30,9 +30,7 @@ class AccountElement(key: Text, val type: Type = Type.BOTH) : CommandElement(key
                     val name = args.next().substring(7)
                     return svc.serverAccounts.values.find { it.name == name } ?: throw args.createError(!"Invalid server account")
                 } else if (args.peek().startsWith("player:")) {
-                    val state = args.state
                     val name = args.next().substring(7)
-                    args.removeArgs(state, args.state)
                     args.insertArg(name)
                     val context = CommandContext()
                     playerElement.parse(source, args, context)

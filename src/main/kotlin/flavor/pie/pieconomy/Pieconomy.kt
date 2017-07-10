@@ -2,6 +2,7 @@ package flavor.pie.pieconomy
 
 import co.aikar.timings.Timings
 import com.google.common.collect.ImmutableList
+import com.google.common.reflect.TypeToken
 import com.google.inject.Inject
 import flavor.pie.kludge.*
 import ninja.leaping.configurate.commented.CommentedConfigurationNode
@@ -17,6 +18,8 @@ import org.spongepowered.api.event.Listener
 import org.spongepowered.api.event.game.state.GameInitializationEvent
 import org.spongepowered.api.event.game.state.GamePreInitializationEvent
 import org.spongepowered.api.event.game.state.GameStoppingServerEvent
+import org.spongepowered.api.item.inventory.Inventory
+import org.spongepowered.api.item.inventory.ItemStack
 import org.spongepowered.api.plugin.Plugin
 import org.spongepowered.api.service.economy.Currency
 import org.spongepowered.api.service.economy.EconomyService
@@ -25,7 +28,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.util.concurrent.TimeUnit
 
-@[Plugin(id = "pieconomy", name = "Pieconomy", version = "0.1.0", authors = arrayOf("pie_flavor"),
+@[Plugin(id = "pieconomy", name = "Pieconomy", version = "0.1.0-SNAPSHOT", authors = arrayOf("pie_flavor"),
         description = "An economy plugin that uses items as currency")]
 class Pieconomy @[Inject] constructor(val logger: Logger,
                                       @[DefaultConfig(sharedRoot = false)] val loader: ConfigurationLoader<CommentedConfigurationNode>,
@@ -48,7 +51,12 @@ class Pieconomy @[Inject] constructor(val logger: Logger,
         if (!Files.exists(path)) {
             AssetManager.getAsset(this, "default.conf").get().copyToFile(path)
         }
-        config = loader.load().getValue(Config.Companion.type)
+        var opts = loader.defaultOptions
+        val serializers = opts.serializers.newChild()
+        serializers.registerType(TypeToken.of(BigDecimal::class.java), BigDecimalSerializer())
+        serializers.registerType(TypeToken.of(ItemVariant::class.java), ItemVariantSerializer())
+        opts = opts.setSerializers(serializers)
+        config = loader.load(opts).getValue(Config.Companion.type)
         val set: MutableSet<Currency> = HashSet()
         config.currencies.forEach { (name, value) ->
             set += PieconomyCurrency(id = name, displayName = value.name, pluralDisplayName = value.plural,
@@ -124,4 +132,25 @@ class Pieconomy @[Inject] constructor(val logger: Logger,
         }
     }
 
+}
+
+val DATA_VALUE_QUERY = DataQuery.of("UnsafeDamage")!!
+val ItemStack.data: Int
+    get() = this.toContainer().getInt(DATA_VALUE_QUERY).unwrap() ?: 0
+
+fun ItemStack.withData(data: Int): ItemStack {
+    val container = this.toContainer().set(DATA_VALUE_QUERY, data)
+    return ItemStack { fromContainer(container) }
+}
+
+fun <T: Inventory> Inventory.query(variant: ItemVariant): T {
+    if (variant.data == null) {
+        return query(variant.type)
+    } else {
+        return queryAny(ItemStack.of(variant.type, 1).withData(variant.data))
+    }
+}
+
+fun debug(s: String) {
+    Pieconomy.instance.logger.debug(s)
 }

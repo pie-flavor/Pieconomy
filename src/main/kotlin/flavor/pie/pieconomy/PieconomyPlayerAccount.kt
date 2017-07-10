@@ -3,7 +3,6 @@ package flavor.pie.pieconomy
 import com.google.common.collect.ImmutableMap
 import flavor.pie.kludge.*
 import org.spongepowered.api.event.cause.Cause
-import org.spongepowered.api.item.ItemType
 import org.spongepowered.api.item.inventory.Inventory
 import org.spongepowered.api.item.inventory.ItemStack
 import org.spongepowered.api.item.inventory.Slot
@@ -27,9 +26,9 @@ class PieconomyPlayerAccount(val id: UUID) : PieconomyAccount, UniqueAccount {
 
     override fun hasBalance(currency: Currency, contexts: Set<Context>): Boolean {
         val p = id.player() ?: return false
-        return p.storageInventory.query<Inventory>(*config.items.filter { (_, value) ->
+        return p.storageInventory.queryAny<Inventory>(*config.items.filter { (_, value) ->
             value.currency == currency
-        }.keys.toTypedArray()).peek().isPresent
+        }.keys.map(ItemVariant::toItem).toTypedArray()).peek().isPresent
     }
 
     override fun resetBalances(cause: Cause, contexts: Set<Context>, fireEvent: Boolean): Map<Currency, TransactionResult> {
@@ -39,8 +38,9 @@ class PieconomyPlayerAccount(val id: UUID) : PieconomyAccount, UniqueAccount {
 
     override fun getBalance(currency: Currency, contexts: Set<Context>): BigDecimal {
         val p = id.player() ?: return BigDecimal.ZERO
-        return p.storageInventory.query<Inventory>(*config.items.filter { (_, value) -> value.currency == currency }
-                .keys.toTypedArray()).slots.map { it.peek().get().let { BigDecimal.valueOf(config.items[it.item]!!.amount * it.quantity) } }
+        return p.storageInventory.queryAny<Inventory>(*config.items.filter { (_, value) -> value.currency == currency }
+                .keys.map(ItemVariant::toItem).toTypedArray()).slots
+                .map { it.peek().get().let { config.items[it.item, it.data]!!.amount * BigDecimal(it.quantity) } }
                 .fold(BigDecimal.ZERO, BigDecimal::add)
     }
 
@@ -81,7 +81,7 @@ class PieconomyPlayerAccount(val id: UUID) : PieconomyAccount, UniqueAccount {
         val p = id.player() ?: return PieconomyTransactionResult(this, BigDecimal.ZERO, contexts, currency, ResultType.FAILED, TransactionTypes.WITHDRAW).also { if (fireEvent) post(it, cause) }
         var num = BigDecimal.ZERO
         config.items.filter { (_, value) -> value.currency == currency }.forEach { (type, _) ->
-            p.storageInventory.query<Inventory>(type).slots<Slot>().forEach { it.poll().ifPresent { num += BigDecimal(it.quantity) } }
+            p.storageInventory.queryAny<Inventory>(type.toItem()).slots<Slot>().forEach { it.poll().ifPresent { num += BigDecimal(it.quantity) } }
         }
         return PieconomyTransactionResult(this, num, contexts, currency, ResultType.SUCCESS, TransactionTypes.WITHDRAW).also { if (fireEvent) post(it, cause) }
     }
@@ -92,16 +92,15 @@ class PieconomyPlayerAccount(val id: UUID) : PieconomyAccount, UniqueAccount {
         }
         val p = id.player() ?: return PieconomyTransactionResult(this, amount, contexts, currency, ResultType.FAILED, TransactionTypes.DEPOSIT).also { if (fireEvent) post(it, cause) }
         val items = config.items.filter { (_, value) -> value.currency == currency }.mapValues { it.value.amount }
-                .let { it.toSortedMap(Comparator.comparing<ItemType, Double> { v -> it[v] }.reversed()) }
-        val min = BigDecimal(items[items.lastKey()]!!)
+                .let { it.toSortedMap(Comparator.comparing<ItemVariant, BigDecimal> { v -> it[v] }.reversed()) }
+        val min = items[items.lastKey()]!!
         var left = amount
         val inserted: MutableList<ItemStack> = ArrayList()
-        loop@for ((item, value_) in items) {
-            val value = BigDecimal(value_)
+        loop@for ((item, value) in items) {
             while (left >= value) {
-                val used = minOf(item.maxStackQuantity, (left / value).toInt())
+                val used = minOf(item.type.maxStackQuantity, (left / value).toInt())
 //                list += ItemStack.of(item, used)
-                val toInsert = ItemStack.of(item, used)
+                val toInsert = ItemStack.of(item.type, used).withData(item.data ?: 0)
                 val res = p.storageInventory.offer(toInsert)
                 toInsert.quantity = used - toInsert.quantity
                 left -= value * BigDecimal(toInsert.quantity)
@@ -141,24 +140,25 @@ class PieconomyPlayerAccount(val id: UUID) : PieconomyAccount, UniqueAccount {
         }
         val p = id.player() ?: return PieconomyTransactionResult(this, amount, contexts, currency, ResultType.FAILED, TransactionTypes.WITHDRAW).also { if (fireEvent) post(it, cause) }
         val items = config.items.filter { (_, value) -> value.currency == currency }.mapValues { it.value.amount }
-                .let { it.toSortedMap(Comparator.comparing<ItemType, Double> { v -> it[v] }.reversed()) }
-        val min = BigDecimal(items[items.lastKey()]!!)
+                .let { it.toSortedMap(Comparator.comparing<ItemVariant, BigDecimal> { v -> it[v] }.reversed()) }
+        val min = items[items.lastKey()]!!
         if (amount - getBalance(currency, contexts) > min) {
             return PieconomyTransactionResult(this, amount, contexts, currency, ResultType.ACCOUNT_NO_FUNDS, TransactionTypes.WITHDRAW).also { if (fireEvent) post(it, cause) }
         }
         var left = amount
         val removed = ArrayList<ItemStack>()
-        for ((item, value_) in items) {
-            val value = BigDecimal(value_)
+        for ((item, value) in items) {
             if (value > left) {
                 continue
             }
-            val query = p.storageInventory.query<Inventory>(item)
+            val query = p.storageInventory.queryAny<Inventory>(item.toItem())
             val available = minOf((left / value).toInt(), query.totalItems())
             var used = 0
             while (used < available) {
-                val polled = query.poll(minOf(item.maxStackQuantity, available)).get()
-                if (polled.quantity == 0) break
+                val polled = query.poll(minOf(item.type.maxStackQuantity, available)).get()
+                if (polled.quantity == 0) {
+                    break
+                }
                 used += polled.quantity
                 removed += polled
             }
@@ -171,9 +171,9 @@ class PieconomyPlayerAccount(val id: UUID) : PieconomyAccount, UniqueAccount {
             val reversed = items.keys.reversed()
             var item: ItemStack? = null
             for (type in reversed) {
-                val removedItem = !p.storageInventory.query<Inventory>(type).poll(1) ?: continue
+                val removedItem = !p.storageInventory.queryAny<Inventory>(type.toItem()).poll(1) ?: continue
                 val itemPrice = items[type]!!
-                val change = BigDecimal(itemPrice) - left
+                val change = itemPrice - left
                 val res = deposit(currency, change, cause, contexts)
                 if (res.result == ResultType.SUCCESS) {
                     item = removedItem
@@ -195,8 +195,8 @@ class PieconomyPlayerAccount(val id: UUID) : PieconomyAccount, UniqueAccount {
     override fun setBalance(currency: Currency, amount: BigDecimal, cause: Cause, contexts: Set<Context>, fireEvent: Boolean): TransactionResult {
         id.player() ?: return PieconomyTransactionResult(this, BigDecimal.ZERO, contexts, currency, ResultType.FAILED, TransactionTypes.DEPOSIT).also { if (fireEvent) post(it, cause) }
         val items = config.items.filter { (_, value) -> value.currency == currency }.mapValues { it.value.amount }
-                .let { it.toSortedMap(Comparator.comparing<ItemType, Double> { v -> it[v] }.reversed()) }
-        val min = BigDecimal(items[items.lastKey()]!!)
+                .let { it.toSortedMap(Comparator.comparing<ItemVariant, BigDecimal> { v -> it[v] }.reversed()) }
+        val min = items[items.lastKey()]!!
         if (amount < min) {
             return resetBalance(currency, cause, contexts, fireEvent)
         }

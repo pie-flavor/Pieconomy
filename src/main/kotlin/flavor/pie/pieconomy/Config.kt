@@ -10,14 +10,18 @@ import org.spongepowered.api.item.ItemType
 import org.spongepowered.api.service.economy.Currency
 import org.spongepowered.api.text.Text
 import org.spongepowered.api.text.TextTemplate
+import java.math.BigDecimal
 
 val config get() = Pieconomy.instance.config
+operator fun Map<ItemVariant, ItemEntry>.get(type: ItemType, data: Int): ItemEntry? = keys
+                .firstOrNull { it.type == type && (it.data == null || it.data == data) }
+                ?.let { this[it] }
 
 @[ConfigSerializable] class Config {
     companion object {
         val type: TypeToken<Config> = of(Config::class.java)
     }
-    @[Setting] var items: Map<ItemType, ItemEntry> = emptyMap()
+    @[Setting] var items: Map<ItemVariant, ItemEntry> = emptyMap()
     @[Setting] var currencies: Map<String, CurrencyEntry> = emptyMap()
     @[Setting("default-currency")] lateinit var defaultCurrencyStr: String
     var defaultCurrency: Currency
@@ -32,7 +36,7 @@ val config get() = Pieconomy.instance.config
     var currency: Currency
         get() = GameRegistry.getType(Currency::class.java, currencyStr).get()
         set(value) { currencyStr = value.id }
-    @[Setting] var amount: Double = 1.0
+    @[Setting] var amount: BigDecimal = BigDecimal.ONE
 }
 
 @[ConfigSerializable] class CurrencyEntry {
