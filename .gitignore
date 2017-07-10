@@ -1,5 +1,7 @@
 .gradle/
 .idea/
+.settings/
+.vscode/
 build/
 target/
 out/
@@ -7,3 +9,5 @@ out/
 Thumbs.db
 *.bak
 *.iml
+.classpath
+.project
