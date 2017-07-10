@@ -17,6 +17,7 @@ import org.spongepowered.api.service.economy.transaction.TransactionTypes
 import org.spongepowered.api.service.economy.transaction.TransferResult
 import org.spongepowered.api.text.Text
 import java.math.BigDecimal
+import java.math.RoundingMode
 import java.util.UUID
 
 class PieconomyPlayerAccount(val id: UUID) : PieconomyAccount, UniqueAccount {
@@ -98,7 +99,7 @@ class PieconomyPlayerAccount(val id: UUID) : PieconomyAccount, UniqueAccount {
         val inserted: MutableList<ItemStack> = ArrayList()
         loop@for ((item, value) in items) {
             while (left >= value) {
-                val used = minOf(item.type.maxStackQuantity, (left / value).toInt())
+                val used = minOf(item.type.maxStackQuantity, left.divide(value, RoundingMode.DOWN).toInt())
 //                list += ItemStack.of(item, used)
                 val toInsert = ItemStack.of(item.type, used).withData(item.data ?: 0)
                 val res = p.storageInventory.offer(toInsert)
