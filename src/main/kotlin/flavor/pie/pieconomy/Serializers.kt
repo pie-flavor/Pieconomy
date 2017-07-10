@@ -38,7 +38,7 @@ class ItemVariantSerializer : TypeSerializer<ItemVariant> {
 data class ItemVariant(val type: ItemType, val data: Int?) {
     fun toItem(): ItemStack {
         if (data == null) {
-            return ItemStack.of(type, 1);
+            return ItemStack.of(type, 1)
         } else {
             return ItemStack.of(type, 1).withData(data)
         }
