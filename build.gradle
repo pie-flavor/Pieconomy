@@ -41,7 +41,7 @@ configurations {
 dependencies {
     shadow "org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlin_version"
     kapt 'org.spongepowered:spongeapi:6.0.0'
-    shadow 'com.github.pie-flavor:Kludge:6bf92f6'
+    shadow 'com.github.pie-flavor:Kludge:fc5bf02'
     shadow 'com.github.pie-flavor:MoreArguments:d85d7c7'
     shadow 'org.bstats:bstats-sponge-lite:1.1'
 }
