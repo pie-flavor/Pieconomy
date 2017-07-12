@@ -45,7 +45,6 @@ object Commands {
                     MoreArgs.bigDecimal(!"amount"),
                     Args.optionalWeak(Args.catalogedElement(!"currency", Currency::class.java))
             )
-            permission("pieconomy.admin.deposit")
         }
         val withdraw = CommandSpec {
             executor(Commands::withdraw)
@@ -55,7 +54,6 @@ object Commands {
                     MoreArgs.bigDecimal(!"amount"),
                     Args.optionalWeak(Args.catalogedElement(!"currency", Currency::class.java))
             )
-            permission("pieconomy.admin.withdraw")
         }
         val transfer = CommandSpec {
             executor(Commands::transfer)
@@ -66,7 +64,6 @@ object Commands {
                     MoreArgs.bigDecimal(!"amount"),
                     Args.optionalWeak(Args.catalogedElement(!"currency", Currency::class.java))
             )
-            permission("pieconomy.admin.transfer")
         }
         val setbal = CommandSpec {
             executor(Commands::setbal)
@@ -76,7 +73,6 @@ object Commands {
                     MoreArgs.bigDecimal(!"amount"),
                     Args.optionalWeak(Args.catalogedElement(!"currency", Currency::class.java))
             )
-            permission("pieconomy.admin.setbal")
         }
         CommandManager.register(Pieconomy.instance, pay, "pay")
         CommandManager.register(Pieconomy.instance, bal, "bal")
@@ -145,6 +141,8 @@ object Commands {
         val currency = args.getOne<Currency>("currency").orElseGet { svc.defaultCurrency }
         val amount = args.getOne<BigDecimal>("amount").get()
         val acct = args.getOne<Account>("to").get()
+        if (acct is PieconomyServerAccount) args.checkPermission(src, "pieconomy.admin.deposit.server.${acct.name}")
+        else args.checkPermission(src, "pieconomy.admin.deposit.player")
         val res = acct.deposit(currency, amount, Cause.source(src).named("Plugin", Pieconomy.instance).build())
         when (res.result!!) {
             ResultType.ACCOUNT_NO_SPACE ->
@@ -172,6 +170,8 @@ object Commands {
         val currency = args.getOne<Currency>("currency").orElseGet { svc.defaultCurrency }
         val amount = args.getOne<BigDecimal>("amount").get()
         val acct = args.getOne<Account>("from").get()
+        if (acct is PieconomyServerAccount) args.checkPermission(src, "pieconomy.admin.withdraw.server.${acct.name}")
+        else args.checkPermission(src, "pieconomy.admin.withdraw.player")
         val res = acct.withdraw(currency, amount, Cause.source(src).named("Plugin", Pieconomy.instance).build())
         when (res.result!!) {
             ResultType.ACCOUNT_NO_FUNDS -> throw CommandException(acct.displayName + " does not have enough money!")
@@ -200,6 +200,10 @@ object Commands {
         val amount = args.getOne<BigDecimal>("amount").get()
         val from = args.getOne<Account>("from").get()
         val to = args.getOne<Account>("to").get()
+        if (from is PieconomyServerAccount) args.checkPermission(src, "pieconomy.admin.transfer.from.server.${from.name}")
+        else args.checkPermission(src, "pieconomy.admin.transfer.from.player")
+        if (to is PieconomyServerAccount) args.checkPermission(src, "pieconomy.admin.transfer.to.server.${to.name}")
+        else args.checkPermission(src, "pieconomy.admin.transfer.to.player")
         val res = from.transfer(to, currency, amount, Cause.source(src).named("Plugin", Pieconomy.instance).build())
                 as PieconomyTransferResult
         when (res.result) {
@@ -234,6 +238,8 @@ object Commands {
         val currency = args.getOne<Currency>("currency").orElseGet { svc.defaultCurrency }
         val amount = args.getOne<BigDecimal>("amount").get()
         val acct = args.getOne<Account>("who").get()
+        if (acct is PieconomyServerAccount) args.checkPermission(src, "pieconomy.admin.setbal.server.${acct.name}")
+        else args.checkPermission(src, "pieconomy.admin.setbal.player")
         val res = acct.setBalance(currency, amount, Cause.source(src).named("Plugin", Pieconomy.instance).build())
         when (res.result!!) {
             ResultType.ACCOUNT_NO_SPACE ->
