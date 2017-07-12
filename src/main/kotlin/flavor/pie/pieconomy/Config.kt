@@ -27,7 +27,7 @@ operator fun Map<ItemVariant, ItemEntry>.get(type: ItemType, data: Int): ItemEnt
     var defaultCurrency: Currency
         get() = GameRegistry.getType(Currency::class.java, defaultCurrencyStr).get()
         set(value) { defaultCurrencyStr = value.id }
-    @[Setting] var version: Int = 1
+    @[Setting] var version: Int = 2
     @[Setting("server-accounts")] var serverAccounts: ServerAccountSection = ServerAccountSection()
 }
 
@@ -44,7 +44,7 @@ operator fun Map<ItemVariant, ItemEntry>.get(type: ItemType, data: Int): ItemEnt
     @[Setting] lateinit var name: Text
     @[Setting] lateinit var plural: Text
     @[Setting] lateinit var symbol: Text
-    @[Setting] lateinit var format: TextTemplate
+    @[Setting] lateinit var format: BetterTextTemplate
 }
 
 @[ConfigSerializable] class ServerAccountSection {

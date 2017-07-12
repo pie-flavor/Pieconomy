@@ -8,6 +8,9 @@ import ninja.leaping.configurate.objectmapping.serialize.TypeSerializer
 import org.spongepowered.api.CatalogTypes
 import org.spongepowered.api.item.ItemType
 import org.spongepowered.api.item.inventory.ItemStack
+import org.spongepowered.api.text.Text
+import org.spongepowered.api.text.TextRepresentable
+import org.spongepowered.api.util.TypeTokens
 import java.math.BigDecimal
 
 class BigDecimalSerializer : TypeSerializer<BigDecimal> {
@@ -42,5 +45,33 @@ data class ItemVariant(val type: ItemType, val data: Int?) {
         } else {
             return ItemStack.of(type, 1).withData(data)
         }
+    }
+}
+
+class BetterTextTemplateSerializer : TypeSerializer<BetterTextTemplate> {
+    override fun deserialize(type: TypeToken<*>, value: ConfigurationNode): BetterTextTemplate {
+        return BetterTextTemplate(value.getValue(TypeTokens.TEXT_TOKEN))
+    }
+
+    override fun serialize(type: TypeToken<*>, obj: BetterTextTemplate, value: ConfigurationNode) {
+        value.setValue(TypeTokens.TEXT_TOKEN, obj.template)
+    }
+}
+
+class BetterTextTemplate(val template: Text) {
+    companion object {
+        val type: TypeToken<BetterTextTemplate> = TypeToken.of(BetterTextTemplate::class.java)
+    }
+
+    fun apply(map: Map<String, *>): Text {
+        var text = template
+        for ((key, value) in map) {
+            if (value is TextRepresentable) {
+                text = text.replace("%{$key}%", value.toText())
+            } else {
+                text = text.replace("%{$key}%", !value.toString())
+            }
+        }
+        return text
     }
 }

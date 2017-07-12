@@ -24,6 +24,7 @@ import org.spongepowered.api.item.inventory.ItemStack
 import org.spongepowered.api.plugin.Plugin
 import org.spongepowered.api.service.economy.Currency
 import org.spongepowered.api.service.economy.EconomyService
+import org.spongepowered.api.util.TypeTokens
 import java.math.BigDecimal
 import java.nio.file.Files
 import java.nio.file.Path
@@ -58,7 +59,20 @@ class Pieconomy @[Inject] constructor(val logger: Logger,
         serializers.registerType(TypeToken.of(BigDecimal::class.java), BigDecimalSerializer())
         serializers.registerType(TypeToken.of(ItemVariant::class.java), ItemVariantSerializer())
         opts = opts.setSerializers(serializers)
-        config = loader.load(opts).getValue(Config.Companion.type)
+        val node = loader.load(opts)
+        if (node.getNode("version").int < 2) {
+            for (currNode in node.getNode("currencies").childrenMap.values) {
+                currNode.getNode("format").let {
+                    val regex = (Regex.escape(currNode.getNode("options", "openArg").getString("{")) + "(.*?)" +
+                            Regex.escape(currNode.getNode("options", "closeArg").getString("}"))).toRegex()
+                    it.setValue(TypeTokens.TEXT_TOKEN, it.getNode("content").getValue(TypeTokens.TEXT_TOKEN)
+                            .replaceCapturing(regex, !"%{$1}%"))
+                }
+            }
+            node.getNode("version").value = 2
+            loader.save(node)
+        }
+        config = node.getValue(Config.type)
         val set: MutableSet<Currency> = HashSet()
         config.currencies.forEach { (name, value) ->
             set += PieconomyCurrency(id = name, displayName = value.name, pluralDisplayName = value.plural,
