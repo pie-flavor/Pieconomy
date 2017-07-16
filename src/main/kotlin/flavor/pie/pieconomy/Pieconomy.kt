@@ -50,7 +50,7 @@ class Pieconomy @[Inject] constructor(val logger: Logger,
     lateinit var config: Config
 
     @[Listener]
-    fun preInit(e: GamePreInitializationEvent) {
+    fun init(e: GameInitializationEvent) {
         if (!Files.exists(path)) {
             AssetManager.getAsset(this, "default.conf").get().copyToFile(path)
         }
@@ -58,6 +58,7 @@ class Pieconomy @[Inject] constructor(val logger: Logger,
         val serializers = opts.serializers.newChild()
         serializers.registerType(TypeToken.of(BigDecimal::class.java), BigDecimalSerializer())
         serializers.registerType(TypeToken.of(ItemVariant::class.java), ItemVariantSerializer())
+        serializers.registerType(BetterTextTemplate.type, BetterTextTemplateSerializer())
         opts = opts.setSerializers(serializers)
         val node = loader.load(opts)
         if (node.getNode("version").int < 2) {
@@ -84,14 +85,8 @@ class Pieconomy @[Inject] constructor(val logger: Logger,
         val svc = PieconomyService()
         ServiceManager.setProvider(this, EconomyService::class.java, svc)
 
-    }
-
-    @[Listener]
-    fun init(e: GameInitializationEvent) {
         Commands.register()
         if (config.serverAccounts.enable) {
-            val svc: EconomyService by UncheckedService
-            svc as PieconomyService
             val data = if (Files.exists(accts)) Files.newInputStream(accts).use { DataFormats.NBT.readFrom(it) } else null
             for (acctEntry in config.serverAccounts.accounts) {
                 val acct = PieconomyServerAccount(acctEntry.name)

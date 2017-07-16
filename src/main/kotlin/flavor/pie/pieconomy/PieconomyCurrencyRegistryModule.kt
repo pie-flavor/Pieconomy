@@ -26,7 +26,7 @@ class PieconomyCurrencyRegistryModule(defaults: Set<Currency>) : AdditionalCatal
         currencies[extraCatalog.id] = extraCatalog
     }
 
-    @[DelayedRegistration(RegistrationPhase.INIT)]
+    @[DelayedRegistration(RegistrationPhase.POST_INIT)]
     override fun registerDefaults() {
         defaults.forEach { currencies[it.id] = it }
     }
