@@ -41,7 +41,7 @@ Offline players cannot be interacted with, because Sponge doesn't allow you to g
 
 ### Commands
 
-##### Player commands
+#### Player commands
 
 `/pay <to> <amount> [<currency>]`  
 Pays someone else some money. Easy enough.  
@@ -49,19 +49,19 @@ Pays someone else some money. Easy enough.
 `/bal [<who>] [<currency>]`  
 Retrieve your balance, or someone else's. If you're the console, `who` isn't optional.  
 
-##### Admin commands
+#### Admin commands
 
 `/deposit <to> <amount> [<currency>]`  
-Add money to an account. Requires `pieconomy.admin.deposit`.  
+Add money to an account. Requires `pieconomy.admin.deposit.server.<server account name>` or `pieconomy.admin.deposit.player`, depending on the account used.  
 
 `/withdraw <from> <amount> [<currency>]`  
-Remove money from an account. Requires `pieconomy.admin.withdraw`.  
+Remove money from an account. Requires `pieconomy.admin.withdraw.server.<server account name>` or `pieconomy.admin.withdraw.player`, depending on the account used.  
 
 `/transfer <from> <to> <amount> [<currency>]`  
-Transfer money from one account to another. Requires `pieconomy.admin.transfer`.  
+Transfer money from one account to another. Requires `pieconomy.admin.transfer.from.server.<server account name>` or `pieconomy.admin.transfer.from.player` and `pieconomy.admin.transfer.to.server.<server account name>` or `pieconomy.admin.transfer.to.player`, depending on the accounts used.  
 
 `/setbal <who> <amount> [<currency>]`  
-Set the balance of an account directly. Requires `pieconomy.admin.setbal`.
+Set the balance of an account directly. Requires `pieconomy.admin.setbal.server.<server account name>` or `pieconomy.admin.setbal.player`, depending on the account used.
   
 ### Configuration
 
@@ -93,21 +93,9 @@ currencies {
     plural = {text = Gold}
     # The symbol. All formatted monetary amounts should show it, for instance G or $. Component format.
     symbol = {text = G, color = gold}
-    # The format that monetary amounts should show up in. Forgive the verbose format, it's from Sponge.
-    # Don't change text or arguments{}, and put {amount} and {symbol} in their own components.
-    # Other than that, content{} is in component format.
-    format {
-      arguments { amount { optional = false }, symbol { optional = false } }
-      content {
-        text = ""
-        extra = [
-          {text = "{amount}"}
-          {text = " "}
-          {text = "{symbol}"}
-        ]
-      }
-      options { openArg = "{", closeArg = "}" }
-    }
+    # The format that monetary amounts should show up in. Component format.
+    # Use the variables %{amount}% and %{symbol}%.
+    format = { text = "%{amount}% %{symbol}%" }
   }
 }
 
@@ -153,14 +141,13 @@ version = 1
 
 ### Upcoming features
 
-* A better `format{}`.
-* Per-server-account permissions.
-* Caching offline players' balances and transactions, and finalizing them upon login.
+* ~~Caching offline players' balances and transactions, and finalizing them upon login.~~ Actually, this won't be feasible. Sorry.
 
 ### Changelog
 
 0.1.0: Initial release.  
 0.2.0: Allowed using data values, and fixed a rounding bug.
+0.3.0: Improved `format{}` and added per-server-account permissions.
 
 ##### Note
 
