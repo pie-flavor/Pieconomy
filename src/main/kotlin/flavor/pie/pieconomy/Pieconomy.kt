@@ -30,7 +30,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.util.concurrent.TimeUnit
 
-@[Plugin(id = "pieconomy", name = "Pieconomy", version = "0.2.0-SNAPSHOT", authors = arrayOf("pie_flavor"),
+@[Plugin(id = "pieconomy", name = "Pieconomy", version = "0.3.0-SNAPSHOT", authors = arrayOf("pie_flavor"),
         description = "An economy plugin that uses items as currency")]
 class Pieconomy @[Inject] constructor(val logger: Logger,
                                       @[DefaultConfig(sharedRoot = false)] val loader: ConfigurationLoader<CommentedConfigurationNode>,
