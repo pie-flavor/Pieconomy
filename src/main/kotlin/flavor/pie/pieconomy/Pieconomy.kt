@@ -62,14 +62,23 @@ class Pieconomy @[Inject] constructor(val logger: Logger,
         opts = opts.setSerializers(serializers)
         val node = loader.load(opts)
         if (node.getNode("version").int < 2) {
+            logger.info("Upgrading old config to version 2")
             for (currNode in node.getNode("currencies").childrenMap.values) {
                 currNode.getNode("format").let {
-                    currNode.getNode("format-old").value = it
+                    currNode.getNode("format-old").run {
+                        value = it
+                        setComment("Migrate to 'format'!")
+                    }
                     it.setValue(TypeTokens.TEXT_TOKEN, !"%{amount}% %{symbol}%")
                 }
             }
             node.getNode("version").value = 2
             loader.save(node)
+        } else {
+            if (!node.getNode("format-old").isVirtual) {
+                logger.warn("Legacy text format detected in config.")
+                logger.warn("Please migrate 'format-old' to 'format', and then delete 'format-old'.")
+            }
         }
         config = node.getValue(Config.type)
         val set: MutableSet<Currency> = HashSet()
