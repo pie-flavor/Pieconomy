@@ -64,10 +64,8 @@ class Pieconomy @[Inject] constructor(val logger: Logger,
         if (node.getNode("version").int < 2) {
             for (currNode in node.getNode("currencies").childrenMap.values) {
                 currNode.getNode("format").let {
-                    val regex = (Regex.escape(currNode.getNode("options", "openArg").getString("{")) + "(.*?)" +
-                            Regex.escape(currNode.getNode("options", "closeArg").getString("}"))).toRegex()
-                    it.setValue(TypeTokens.TEXT_TOKEN, it.getNode("content").getValue(TypeTokens.TEXT_TOKEN)
-                            .replaceCapturing(regex, !"%{$1}%"))
+                    currNode.getNode("format-old").value = it
+                    it.setValue(TypeTokens.TEXT_TOKEN, !"%{amount}% %{symbol}%")
                 }
             }
             node.getNode("version").value = 2
