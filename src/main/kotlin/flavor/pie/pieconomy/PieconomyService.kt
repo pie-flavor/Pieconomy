@@ -20,7 +20,7 @@ class PieconomyService : EconomyService {
 
     override fun getOrCreateAccount(uuid: UUID): Optional<UniqueAccount> = cache[uuid].optional
 
-    override fun getOrCreateAccount(identifier: String): Optional<Account> = serverAccounts.values.first { it.name == identifier }.optional
+    override fun getOrCreateAccount(identifier: String): Optional<Account> = serverAccounts.values.firstOrNull { it.name == identifier }.optional
 
     override fun registerContextCalculator(calculator: ContextCalculator<Account>?) {}
 
