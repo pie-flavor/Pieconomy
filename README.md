@@ -146,7 +146,7 @@ version = 1
 ### Changelog
 
 0.1.0: Initial release.  
-0.2.0: Allowed using data values, and fixed a rounding bug.
+0.2.0: Allowed using data values, and fixed a rounding bug.  
 0.3.0: Improved `format{}` and added per-server-account permissions.
 
 ##### Note
