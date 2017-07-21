@@ -13,7 +13,7 @@ import org.spongepowered.api.text.TextRepresentable
 import org.spongepowered.api.util.TypeTokens
 import java.math.BigDecimal
 
-class BigDecimalSerializer : TypeSerializer<BigDecimal> {
+object BigDecimalSerializer : TypeSerializer<BigDecimal> {
     override fun serialize(type: TypeToken<*>, obj: BigDecimal, value: ConfigurationNode) {
         value.value = obj.toPlainString()
     }
@@ -25,30 +25,42 @@ class BigDecimalSerializer : TypeSerializer<BigDecimal> {
 
 val AT_SIGN_REGEX = "@".toRegex()
 
-class ItemVariantSerializer : TypeSerializer<ItemVariant> {
+object ItemVariantSerializer : TypeSerializer<ItemVariant> {
     override fun deserialize(type: TypeToken<*>, value: ConfigurationNode): ItemVariant {
-        return value.string.split(AT_SIGN_REGEX).let { ItemVariant(
-                GameRegistry.getType(CatalogTypes.ITEM_TYPE, it[0]).orElseThrow { ObjectMappingException("Invalid ItemType") },
-                if (it.size > 1) it[1].toInt() else null) }
+        try {
+            return ItemVariant.fromString(value.string)
+        } catch (e: IllegalArgumentException) {
+            throw ObjectMappingException(e)
+        }
     }
 
     override fun serialize(type: TypeToken<*>, obj: ItemVariant, value: ConfigurationNode) {
-        value.value = obj.type.id.let { if (obj.data == null) it else "$it@${obj.data}" }
+        value.value = obj.toString()
     }
 
 }
 
-data class ItemVariant(val type: ItemType, val data: Int?) {
+data class ItemVariant(val type: ItemType, val data: Int) {
+    companion object {
+        fun fromItem(stack: ItemStack): ItemVariant = ItemVariant(stack.item, stack.data)
+        fun fromString(str: String): ItemVariant = str.split(AT_SIGN_REGEX).let { ItemVariant(
+                GameRegistry.getType(CatalogTypes.ITEM_TYPE, it[0]).orElseThrow { IllegalArgumentException("Invalid ItemType") },
+                if (it.size > 1) it[1].toInt() else 0) }
+    }
     fun toItem(): ItemStack {
-        if (data == null) {
+        if (data == 0) {
             return ItemStack.of(type, 1)
         } else {
             return ItemStack.of(type, 1).withData(data)
         }
     }
+
+    override fun toString(): String {
+        return type.id.let { if (data == 0) it else "$it@$data" }
+    }
 }
 
-class BetterTextTemplateSerializer : TypeSerializer<BetterTextTemplate> {
+object BetterTextTemplateSerializer : TypeSerializer<BetterTextTemplate> {
     override fun deserialize(type: TypeToken<*>, value: ConfigurationNode): BetterTextTemplate {
         return BetterTextTemplate(value.getValue(TypeTokens.TEXT_TOKEN))
     }

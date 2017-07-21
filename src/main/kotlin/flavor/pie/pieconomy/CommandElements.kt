@@ -2,6 +2,7 @@ package flavor.pie.pieconomy
 
 import com.google.common.collect.ImmutableList
 import flavor.pie.kludge.*
+import org.spongepowered.api.CatalogTypes
 import org.spongepowered.api.command.CommandSource
 import org.spongepowered.api.command.args.ArgumentParseException
 import org.spongepowered.api.command.args.CommandArgs
@@ -98,4 +99,30 @@ class AccountElement(key: Text, val type: Type = Type.BOTH) : CommandElement(key
         }
         return builder.build()
     }
+}
+
+class ItemVariantElement(key: Text) : CommandElement(key) {
+
+    private val catalogElement: CommandElement = GenericArguments.catalogedElement(key, CatalogTypes.ITEM_TYPE)
+
+    override fun parseValue(source: CommandSource, args: CommandArgs): Any? {
+        val next = args.next()
+        try {
+            return ItemVariant.fromString(next)
+        } catch (e: IllegalArgumentException) {
+            throw args.createError(!(e.message ?: "Invalid item!"))
+        }
+    }
+
+    override fun complete(src: CommandSource, args: CommandArgs, context: CommandContext): List<String> {
+        if (!args.hasNext()) return emptyList()
+        if (args.peek().contains('@')) {
+            val (type, ident) = args.next().split(AT_SIGN_REGEX, 2)
+            args.insertArg(type)
+            val ret = catalogElement.complete(src, args, context)
+            return ret.map { it + ident }
+        }
+        return catalogElement.complete(src, args, context)
+    }
+
 }

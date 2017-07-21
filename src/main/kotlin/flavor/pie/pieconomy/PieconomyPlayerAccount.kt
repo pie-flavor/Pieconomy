@@ -101,7 +101,7 @@ class PieconomyPlayerAccount(val id: UUID) : PieconomyAccount, UniqueAccount {
             while (left >= value) {
                 val used = minOf(item.type.maxStackQuantity, left.divide(value, RoundingMode.DOWN).toInt())
 //                list += ItemStack.of(item, used)
-                val toInsert = ItemStack.of(item.type, used).withData(item.data ?: 0)
+                val toInsert = ItemStack.of(item.type, used).withData(item.data)
                 val res = p.storageInventory.offer(toInsert)
                 toInsert.quantity = used - toInsert.quantity
                 left -= value * BigDecimal(toInsert.quantity)

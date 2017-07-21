@@ -17,7 +17,6 @@ import org.spongepowered.api.data.DataView
 import org.spongepowered.api.data.persistence.DataFormats
 import org.spongepowered.api.event.Listener
 import org.spongepowered.api.event.game.state.GameInitializationEvent
-import org.spongepowered.api.event.game.state.GamePreInitializationEvent
 import org.spongepowered.api.event.game.state.GameStoppingServerEvent
 import org.spongepowered.api.item.inventory.Inventory
 import org.spongepowered.api.item.inventory.ItemStack
@@ -56,9 +55,9 @@ class Pieconomy @[Inject] constructor(val logger: Logger,
         }
         var opts = loader.defaultOptions
         val serializers = opts.serializers.newChild()
-        serializers.registerType(TypeToken.of(BigDecimal::class.java), BigDecimalSerializer())
-        serializers.registerType(TypeToken.of(ItemVariant::class.java), ItemVariantSerializer())
-        serializers.registerType(BetterTextTemplate.type, BetterTextTemplateSerializer())
+        serializers.registerType(TypeToken.of(BigDecimal::class.java), BigDecimalSerializer)
+        serializers.registerType(TypeToken.of(ItemVariant::class.java), ItemVariantSerializer)
+        serializers.registerType(BetterTextTemplate.type, BetterTextTemplateSerializer)
         opts = opts.setSerializers(serializers)
         val node = loader.load(opts)
         if (node.getNode("version").int < 2) {
@@ -80,12 +79,20 @@ class Pieconomy @[Inject] constructor(val logger: Logger,
                 logger.warn("Please migrate 'format-old' to 'format', and then delete 'format-old'.")
             }
         }
+        if (node.getNode("version").int < 3) {
+            logger.info("Upgrading old config to version 3")
+            for (currNode in node.getNode("currencies").childrenMap.values) {
+                currNode.getNode("exchangeable").value = true
+            }
+            node.getNode("version").value = 3
+            loader.save(node)
+        }
         config = node.getValue(Config.type)
         val set: MutableSet<Currency> = HashSet()
-        config.currencies.forEach { (name, value) ->
-            set += PieconomyCurrency(id = name, displayName = value.name, pluralDisplayName = value.plural,
+        config.currencies.forEach { (id, value) ->
+            set += PieconomyCurrency(id = id, displayName = value.name, pluralDisplayName = value.plural,
                     defaultFractionDigits = value.decimalPlaces, format = value.format,
-                    symbol = value.symbol, isDefault = config.defaultCurrencyStr == name)
+                    symbol = value.symbol, isDefault = config.defaultCurrencyStr == id, exchangeable = value.exchangeable)
         }
         val mod = PieconomyCurrencyRegistryModule(set)
         GameRegistry.registerModule(Currency::class.java, mod)
@@ -162,11 +169,7 @@ fun ItemStack.withData(data: Int): ItemStack {
 }
 
 fun <T: Inventory> Inventory.query(variant: ItemVariant): T {
-    if (variant.data == null) {
-        return query(variant.type)
-    } else {
-        return queryAny(ItemStack.of(variant.type, 1).withData(variant.data))
-    }
+    return queryAny(ItemStack.of(variant.type, 1).withData(variant.data))
 }
 
 fun debug(s: String) {

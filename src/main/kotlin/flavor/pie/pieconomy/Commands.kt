@@ -6,6 +6,7 @@ import org.spongepowered.api.command.CommandException
 import org.spongepowered.api.command.CommandResult
 import org.spongepowered.api.command.CommandSource
 import org.spongepowered.api.command.args.CommandContext
+import org.spongepowered.api.data.type.HandTypes
 import org.spongepowered.api.entity.living.player.Player
 import org.spongepowered.api.event.cause.Cause
 import org.spongepowered.api.service.economy.Currency
@@ -15,6 +16,7 @@ import org.spongepowered.api.service.economy.account.Account
 import org.spongepowered.api.service.economy.transaction.ResultType
 import java.math.BigDecimal
 import java.math.BigInteger
+import java.math.MathContext
 
 object Commands {
     val svc: EconomyService by UncheckedService
@@ -74,12 +76,20 @@ object Commands {
                     Args.optionalWeak(Args.catalogedElement(!"currency", Currency::class.java))
             )
         }
+        val exchange = CommandSpec {
+            executor(Commands::exchange)
+            description(!"Exchange between units of currency.")
+            arguments(
+                    ItemVariantElement(!"item")
+            )
+        }
         CommandManager.register(Pieconomy.instance, pay, "pay")
         CommandManager.register(Pieconomy.instance, bal, "bal")
         CommandManager.register(Pieconomy.instance, deposit, "deposit")
         CommandManager.register(Pieconomy.instance, withdraw, "withdraw")
         CommandManager.register(Pieconomy.instance, transfer, "transfer")
         CommandManager.register(Pieconomy.instance, setbal, "setbal")
+        CommandManager.register(Pieconomy.instance, exchange, "exchange")
     }
 
     @[Throws(CommandException::class)]
@@ -264,5 +274,51 @@ object Commands {
                 error("Unknown error regarding account balance subtraction calculations.")
             }
         }
+    }
+
+    @[Throws(CommandException::class)]
+    fun exchange(src: CommandSource, args: CommandContext): CommandResult {
+        if (src !is Player) {
+            throw CommandException(!"You must be a player!")
+        }
+        val stack = src.getItemInHand(HandTypes.MAIN_HAND).orElseThrow { CommandException(!"You must hold the item!") }
+        val convertFrom = ItemVariant(stack.item, stack.data)
+        val currency = (config.items[convertFrom] ?: throw CommandException(!"Held item is not a currency item!")).currency
+        if (currency is PieconomyCurrency && !currency.exchangeable) {
+            throw CommandException(!"This currency is not exchangeable!")
+        }
+        val items = config.items.filter { (_, value) -> value.currency == currency }.mapValues { it.value.amount }
+                .let { it.toSortedMap(Comparator.comparing<ItemVariant, BigDecimal> { v -> it[v] }.reversed()) }
+        val convertTo = args.getOne<ItemVariant>("item").get()
+        if (convertTo !in items) {
+            throw CommandException(!"Requested item is not of the same currency!")
+        }
+        val valueFrom = items[convertFrom]!!
+        val valueTo = items[convertTo]!!
+        val min = items[items.lastKey()]!!
+        if ((valueFrom - valueTo).abs() <= min) {
+            val converted = convertTo.toItem()
+            converted.quantity = stack.quantity
+            src.setItemInHand(HandTypes.MAIN_HAND, converted)
+        } else if (valueFrom < valueTo) {
+            val total = valueFrom * BigDecimal(stack.quantity)
+            if (total.remainder(valueTo, MathContext.DECIMAL64) != BigDecimal.ZERO) {
+                throw CommandException(!"The quantities do not evenly divide!")
+            }
+            val quantityTo = total / valueTo
+            val converted = convertTo.toItem()
+            converted.quantity = quantityTo.toInt()
+            src.setItemInHand(HandTypes.MAIN_HAND, converted)
+        } else {
+            val total = valueFrom * BigDecimal(stack.quantity)
+            if (valueTo.remainder(total, MathContext.DECIMAL64) != BigDecimal.ZERO) {
+                throw CommandException(!"The quantities do not evenly divide!")
+            }
+            val quantityTo = valueTo / total
+            val converted = convertTo.toItem()
+            converted.quantity = quantityTo.toInt()
+            src.setItemInHand(HandTypes.MAIN_HAND, converted)
+        }
+        return CommandResult.success()
     }
 }

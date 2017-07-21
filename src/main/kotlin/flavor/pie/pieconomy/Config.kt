@@ -45,6 +45,7 @@ operator fun Map<ItemVariant, ItemEntry>.get(type: ItemType, data: Int): ItemEnt
     @[Setting] lateinit var plural: Text
     @[Setting] lateinit var symbol: Text
     @[Setting] lateinit var format: BetterTextTemplate
+    @[Setting] var exchangeable: Boolean = true
 }
 
 @[ConfigSerializable] class ServerAccountSection {
