@@ -23,8 +23,6 @@ object BigDecimalSerializer : TypeSerializer<BigDecimal> {
     }
 }
 
-val AT_SIGN_REGEX = "@".toRegex()
-
 object ItemVariantSerializer : TypeSerializer<ItemVariant> {
     override fun deserialize(type: TypeToken<*>, value: ConfigurationNode): ItemVariant {
         try {
@@ -43,7 +41,7 @@ object ItemVariantSerializer : TypeSerializer<ItemVariant> {
 data class ItemVariant(val type: ItemType, val data: Int) {
     companion object {
         fun fromItem(stack: ItemStack): ItemVariant = ItemVariant(stack.item, stack.data)
-        fun fromString(str: String): ItemVariant = str.split(AT_SIGN_REGEX).let { ItemVariant(
+        fun fromString(str: String): ItemVariant = str.split("@").let { ItemVariant(
                 GameRegistry.getType(CatalogTypes.ITEM_TYPE, it[0]).orElseThrow { IllegalArgumentException("Invalid ItemType") },
                 if (it.size > 1) it[1].toInt() else 0) }
     }

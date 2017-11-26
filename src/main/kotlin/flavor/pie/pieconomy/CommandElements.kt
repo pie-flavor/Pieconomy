@@ -117,7 +117,7 @@ class ItemVariantElement(key: Text) : CommandElement(key) {
     override fun complete(src: CommandSource, args: CommandArgs, context: CommandContext): List<String> {
         if (!args.hasNext()) return emptyList()
         if (args.peek().contains('@')) {
-            val (type, ident) = args.next().split(AT_SIGN_REGEX, 2)
+            val (type, ident) = args.next().split("@", limit = 2)
             args.insertArg(type)
             val ret = catalogElement.complete(src, args, context)
             return ret.map { it + ident }
