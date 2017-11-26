@@ -295,6 +295,9 @@ object Commands {
         }
         val valueFrom = items[convertFrom]!!
         val valueTo = items[convertTo]!!
+        if (valueFrom > valueTo) {
+            throw CommandException(!"This command is for up-converting, not down-converting.")
+        }
         val min = items[items.lastKey()]!!
         if ((valueFrom - valueTo).abs() <= min) {
             val converted = convertTo.toItem()
