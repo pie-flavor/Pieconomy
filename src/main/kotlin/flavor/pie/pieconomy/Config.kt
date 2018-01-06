@@ -9,7 +9,6 @@ import org.spongepowered.api.CatalogType
 import org.spongepowered.api.item.ItemType
 import org.spongepowered.api.service.economy.Currency
 import org.spongepowered.api.text.Text
-import org.spongepowered.api.text.TextTemplate
 import java.math.BigDecimal
 
 val config get() = Pieconomy.instance.config

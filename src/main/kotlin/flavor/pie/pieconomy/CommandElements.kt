@@ -23,6 +23,7 @@ class AccountElement(key: Text, val type: Type = Type.BOTH) : CommandElement(key
 
     @[Throws(ArgumentParseException::class)]
     override fun parseValue(source: CommandSource, args: CommandArgs): Any {
+        val key = key!!
         val svc: EconomyService by UncheckedService
         svc as PieconomyService
         when (type) {
@@ -38,14 +39,14 @@ class AccountElement(key: Text, val type: Type = Type.BOTH) : CommandElement(key
                     return svc.getOrCreateAccount(context.getOne<Player>(key).get().uniqueId).get()
                 }
                 val state = args.state
-                try {
+                return try {
                     val context = CommandContext()
                     playerElement.parse(source, args, context)
-                    return svc.getOrCreateAccount(context.getOne<Player>(key).get().uniqueId).get()
+                    svc.getOrCreateAccount(context.getOne<Player>(key).get().uniqueId).get()
                 } catch (e: ArgumentParseException) {
                     args.state = state
                     val next = args.next()
-                    return svc.serverAccounts.values.find { it.name == next } ?: throw args.createError(!"Invalid account name")
+                    svc.serverAccounts.values.find { it.name == next } ?: throw args.createError(!"Invalid account name")
                 }
             }
             Type.PLAYER -> {

@@ -40,16 +40,16 @@ object ItemVariantSerializer : TypeSerializer<ItemVariant> {
 
 data class ItemVariant(val type: ItemType, val data: Int) {
     companion object {
-        fun fromItem(stack: ItemStack): ItemVariant = ItemVariant(stack.item, stack.data)
+        fun fromItem(stack: ItemStack): ItemVariant = ItemVariant(stack.type, stack.data)
         fun fromString(str: String): ItemVariant = str.split("@").let { ItemVariant(
                 GameRegistry.getType(CatalogTypes.ITEM_TYPE, it[0]).orElseThrow { IllegalArgumentException("Invalid ItemType") },
                 if (it.size > 1) it[1].toInt() else 0) }
     }
     fun toItem(): ItemStack {
-        if (data == 0) {
-            return ItemStack.of(type, 1)
+        return if (data == 0) {
+            ItemStack.of(type, 1)
         } else {
-            return ItemStack.of(type, 1).withData(data)
+            ItemStack.of(type, 1).withData(data)
         }
     }
 
@@ -76,10 +76,10 @@ class BetterTextTemplate(val template: Text) {
     fun apply(map: Map<String, *>): Text {
         var text = template
         for ((key, value) in map) {
-            if (value is TextRepresentable) {
-                text = text.replace("%{$key}%", value.toText())
+            text = if (value is TextRepresentable) {
+                text.replace("%{$key}%", value.toText())
             } else {
-                text = text.replace("%{$key}%", !value.toString())
+                text.replace("%{$key}%", !value.toString())
             }
         }
         return text

@@ -1,5 +1,5 @@
 buildscript {
-    ext.kotlin_version = '1.1.60'
+    ext.kotlin_version = '1.2.0'
 
     repositories {
         mavenCentral()
@@ -40,8 +40,8 @@ configurations {
 
 dependencies {
     shadow "org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlin_version"
-    kapt 'org.spongepowered:spongeapi:6.0.0'
-    shadow 'com.github.pie-flavor:Kludge:db94948'
+    kapt 'org.spongepowered:spongeapi:7.0.0'
+    shadow 'com.github.pie-flavor:Kludge:caa38e9'
     shadow 'com.github.pie-flavor:MoreArguments:d85d7c7'
     shadow 'org.bstats:bstats-sponge-lite:1.1'
 }

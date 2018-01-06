@@ -1,9 +1,10 @@
+@file:Suppress("ReplaceGetOrSet")
+
 package flavor.pie.pieconomy
 
 import com.google.common.collect.ImmutableMap
 import flavor.pie.kludge.*
 import org.spongepowered.api.event.cause.Cause
-import org.spongepowered.api.item.inventory.Inventory
 import org.spongepowered.api.item.inventory.ItemStack
 import org.spongepowered.api.item.inventory.Slot
 import org.spongepowered.api.service.context.Context
@@ -27,7 +28,7 @@ class PieconomyPlayerAccount(val id: UUID) : PieconomyAccount, UniqueAccount {
 
     override fun hasBalance(currency: Currency, contexts: Set<Context>): Boolean {
         val p = id.player() ?: return false
-        return p.storageInventory.queryAny<Inventory>(*config.items.filter { (_, value) ->
+        return p.storageInventory.get(*config.items.filter { (_, value) ->
             value.currency == currency
         }.keys.map(ItemVariant::toItem).toTypedArray()).peek().isPresent
     }
@@ -39,9 +40,9 @@ class PieconomyPlayerAccount(val id: UUID) : PieconomyAccount, UniqueAccount {
 
     override fun getBalance(currency: Currency, contexts: Set<Context>): BigDecimal {
         val p = id.player() ?: return BigDecimal.ZERO
-        return p.storageInventory.queryAny<Inventory>(*config.items.filter { (_, value) -> value.currency == currency }
+        return p.storageInventory.get(config.items.filter { (_, value) -> value.currency == currency }
                 .keys.map(ItemVariant::toItem).toTypedArray()).slots
-                .map { it.peek().get().let { config.items[it.item, it.data]!!.amount * BigDecimal(it.quantity) } }
+                .map { it.peek().get().let { config.items[it.type, it.data]!!.amount * BigDecimal(it.quantity) } }
                 .fold(BigDecimal.ZERO, BigDecimal::add)
     }
 
@@ -82,7 +83,7 @@ class PieconomyPlayerAccount(val id: UUID) : PieconomyAccount, UniqueAccount {
         val p = id.player() ?: return PieconomyTransactionResult(this, BigDecimal.ZERO, contexts, currency, ResultType.FAILED, TransactionTypes.WITHDRAW).also { if (fireEvent) post(it, cause) }
         var num = BigDecimal.ZERO
         config.items.filter { (_, value) -> value.currency == currency }.forEach { (type, _) ->
-            p.storageInventory.queryAny<Inventory>(type.toItem()).slots<Slot>().forEach { it.poll().ifPresent { num += BigDecimal(it.quantity) } }
+            p.storageInventory[type.toItem()].slots<Slot>().forEach { it.poll().ifPresent { num += BigDecimal(it.quantity) } }
         }
         return PieconomyTransactionResult(this, num, contexts, currency, ResultType.SUCCESS, TransactionTypes.WITHDRAW).also { if (fireEvent) post(it, cause) }
     }
@@ -116,7 +117,7 @@ class PieconomyPlayerAccount(val id: UUID) : PieconomyAccount, UniqueAccount {
         }
         if (left >= min) {
             for (insert in inserted) {
-                p.storageInventory.queryAny<Inventory>(insert).poll(insert.quantity)
+                p.storageInventory[insert].poll(insert.quantity)
             }
             return PieconomyTransactionResult(this, amount, contexts, currency, ResultType.ACCOUNT_NO_SPACE, TransactionTypes.DEPOSIT).also { if (fireEvent) post(it, cause) }
         }
@@ -152,7 +153,7 @@ class PieconomyPlayerAccount(val id: UUID) : PieconomyAccount, UniqueAccount {
             if (value > left) {
                 continue
             }
-            val query = p.storageInventory.queryAny<Inventory>(item.toItem())
+            val query = p.storageInventory[item.toItem()]
             val available = minOf((left / value).toInt(), query.totalItems())
             var used = 0
             while (used < available) {
@@ -172,7 +173,7 @@ class PieconomyPlayerAccount(val id: UUID) : PieconomyAccount, UniqueAccount {
             val reversed = items.keys.reversed()
             var item: ItemStack? = null
             for (type in reversed) {
-                val removedItem = !p.storageInventory.queryAny<Inventory>(type.toItem()).poll(1) ?: continue
+                val removedItem = !p.storageInventory[type.toItem()].poll(1) ?: continue
                 val itemPrice = items[type]!!
                 val change = itemPrice - left
                 val res = deposit(currency, change, cause, contexts)

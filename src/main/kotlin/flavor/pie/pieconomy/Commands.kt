@@ -1,22 +1,21 @@
 package flavor.pie.pieconomy
 
 import flavor.pie.kludge.*
-import flavor.pie.util.arguments.MoreArguments as MoreArgs
 import org.spongepowered.api.command.CommandException
 import org.spongepowered.api.command.CommandResult
 import org.spongepowered.api.command.CommandSource
 import org.spongepowered.api.command.args.CommandContext
 import org.spongepowered.api.data.type.HandTypes
 import org.spongepowered.api.entity.living.player.Player
-import org.spongepowered.api.event.cause.Cause
 import org.spongepowered.api.service.economy.Currency
-import org.spongepowered.api.command.args.GenericArguments as Args
 import org.spongepowered.api.service.economy.EconomyService
 import org.spongepowered.api.service.economy.account.Account
 import org.spongepowered.api.service.economy.transaction.ResultType
 import java.math.BigDecimal
 import java.math.BigInteger
 import java.math.MathContext
+import flavor.pie.util.arguments.MoreArguments as MoreArgs
+import org.spongepowered.api.command.args.GenericArguments as Args
 
 object Commands {
     val svc: EconomyService by UncheckedService
@@ -99,8 +98,7 @@ object Commands {
         val to = args.getOne<Account>("to").get()
         val currency = args.getOne<Currency>("currency").orElseGet { svc.defaultCurrency }
         val amount = args.getOne<BigDecimal>("amount").get()
-        val res = srcAcct.transfer(to, currency, amount, Cause.source(src).named("Plugin", Pieconomy.instance).build())
-                as PieconomyTransferResult
+        val res = srcAcct.transfer(to, currency, amount, CauseStackManager.currentCause) as PieconomyTransferResult
         when (res.result) {
             ResultType.ACCOUNT_NO_FUNDS -> throw CommandException(!"You do not have enough money!")
             ResultType.ACCOUNT_NO_SPACE -> throw CommandException(
@@ -116,7 +114,8 @@ object Commands {
             )
             ResultType.SUCCESS -> {
                 src.sendMessage(!"Paid " + currency.format(amount) + " to " + to.displayName + ".")
-                (to as? PieconomyPlayerAccount)?.id?.player()?.sendMessage(!"${src.name} paid you " + currency.format(amount) + ".")
+                (to as? PieconomyPlayerAccount)?.id?.player()
+                        ?.sendMessage(!"${src.name} paid you " + currency.format(amount) + ".")
                 return CommandResult.success()
             }
             ResultType.CONTEXT_MISMATCH, ResultType.FAILED -> {
@@ -153,7 +152,7 @@ object Commands {
         val acct = args.getOne<Account>("to").get()
         if (acct is PieconomyServerAccount) args.checkPermission(src, "pieconomy.admin.deposit.server.${acct.name}")
         else args.checkPermission(src, "pieconomy.admin.deposit.player")
-        val res = acct.deposit(currency, amount, Cause.source(src).named("Plugin", Pieconomy.instance).build())
+        val res = acct.deposit(currency, amount, CauseStackManager.currentCause)
         when (res.result!!) {
             ResultType.ACCOUNT_NO_SPACE ->
                 if (acct is PieconomyPlayerAccount) {
@@ -182,7 +181,7 @@ object Commands {
         val acct = args.getOne<Account>("from").get()
         if (acct is PieconomyServerAccount) args.checkPermission(src, "pieconomy.admin.withdraw.server.${acct.name}")
         else args.checkPermission(src, "pieconomy.admin.withdraw.player")
-        val res = acct.withdraw(currency, amount, Cause.source(src).named("Plugin", Pieconomy.instance).build())
+        val res = acct.withdraw(currency, amount, CauseStackManager.currentCause)
         when (res.result!!) {
             ResultType.ACCOUNT_NO_FUNDS -> throw CommandException(acct.displayName + " does not have enough money!")
             ResultType.ACCOUNT_NO_SPACE ->
@@ -214,7 +213,7 @@ object Commands {
         else args.checkPermission(src, "pieconomy.admin.transfer.from.player")
         if (to is PieconomyServerAccount) args.checkPermission(src, "pieconomy.admin.transfer.to.server.${to.name}")
         else args.checkPermission(src, "pieconomy.admin.transfer.to.player")
-        val res = from.transfer(to, currency, amount, Cause.source(src).named("Plugin", Pieconomy.instance).build())
+        val res = from.transfer(to, currency, amount, CauseStackManager.currentCause)
                 as PieconomyTransferResult
         when (res.result) {
             ResultType.ACCOUNT_NO_FUNDS -> throw CommandException(from.displayName + " does not have enough money!")
@@ -250,7 +249,7 @@ object Commands {
         val acct = args.getOne<Account>("who").get()
         if (acct is PieconomyServerAccount) args.checkPermission(src, "pieconomy.admin.setbal.server.${acct.name}")
         else args.checkPermission(src, "pieconomy.admin.setbal.player")
-        val res = acct.setBalance(currency, amount, Cause.source(src).named("Plugin", Pieconomy.instance).build())
+        val res = acct.setBalance(currency, amount, CauseStackManager.currentCause)
         when (res.result!!) {
             ResultType.ACCOUNT_NO_SPACE ->
                 if (acct is PieconomyPlayerAccount) {
@@ -282,7 +281,7 @@ object Commands {
             throw CommandException(!"You must be a player!")
         }
         val stack = src.getItemInHand(HandTypes.MAIN_HAND).orElseThrow { CommandException(!"You must hold the item!") }
-        val convertFrom = ItemVariant(stack.item, stack.data)
+        val convertFrom = ItemVariant(stack.type, stack.data)
         val currency = (config.items[convertFrom] ?: throw CommandException(!"Held item is not a currency item!")).currency
         if (currency is PieconomyCurrency && !currency.exchangeable) {
             throw CommandException(!"This currency is not exchangeable!")
@@ -299,28 +298,32 @@ object Commands {
             throw CommandException(!"This command is for up-converting, not down-converting.")
         }
         val min = items[items.lastKey()]!!
-        if ((valueFrom - valueTo).abs() <= min) {
-            val converted = convertTo.toItem()
-            converted.quantity = stack.quantity
-            src.setItemInHand(HandTypes.MAIN_HAND, converted)
-        } else if (valueFrom < valueTo) {
-            val total = valueFrom * BigDecimal(stack.quantity)
-            if (total.remainder(valueTo, MathContext.DECIMAL64) != BigDecimal.ZERO) {
-                throw CommandException(!"The quantities do not evenly divide!")
+        when {
+            (valueFrom - valueTo).abs() <= min -> {
+                val converted = convertTo.toItem()
+                converted.quantity = stack.quantity
+                src.setItemInHand(HandTypes.MAIN_HAND, converted)
             }
-            val quantityTo = total / valueTo
-            val converted = convertTo.toItem()
-            converted.quantity = quantityTo.toInt()
-            src.setItemInHand(HandTypes.MAIN_HAND, converted)
-        } else {
-            val total = valueFrom * BigDecimal(stack.quantity)
-            if (valueTo.remainder(total, MathContext.DECIMAL64) != BigDecimal.ZERO) {
-                throw CommandException(!"The quantities do not evenly divide!")
+            valueFrom < valueTo -> {
+                val total = valueFrom * BigDecimal(stack.quantity)
+                if (total.remainder(valueTo, MathContext.DECIMAL64) != BigDecimal.ZERO) {
+                    throw CommandException(!"The quantities do not evenly divide!")
+                }
+                val quantityTo = total / valueTo
+                val converted = convertTo.toItem()
+                converted.quantity = quantityTo.toInt()
+                src.setItemInHand(HandTypes.MAIN_HAND, converted)
             }
-            val quantityTo = valueTo / total
-            val converted = convertTo.toItem()
-            converted.quantity = quantityTo.toInt()
-            src.setItemInHand(HandTypes.MAIN_HAND, converted)
+            else -> {
+                val total = valueFrom * BigDecimal(stack.quantity)
+                if (valueTo.remainder(total, MathContext.DECIMAL64) != BigDecimal.ZERO) {
+                    throw CommandException(!"The quantities do not evenly divide!")
+                }
+                val quantityTo = valueTo / total
+                val converted = convertTo.toItem()
+                converted.quantity = quantityTo.toInt()
+                src.setItemInHand(HandTypes.MAIN_HAND, converted)
+            }
         }
         return CommandResult.success()
     }

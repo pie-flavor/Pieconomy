@@ -29,7 +29,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.util.concurrent.TimeUnit
 
-@[Plugin(id = "pieconomy", name = "Pieconomy", version = "0.4.0-SNAPSHOT", authors = arrayOf("pie_flavor"),
+@[Plugin(id = "pieconomy", name = "Pieconomy", version = "0.4.0-SNAPSHOT", authors = ["pie_flavor"],
         description = "An economy plugin that uses items as currency")]
 class Pieconomy @[Inject] constructor(val logger: Logger,
                                       @[DefaultConfig(sharedRoot = false)] val loader: ConfigurationLoader<CommentedConfigurationNode>,
@@ -159,17 +159,18 @@ class Pieconomy @[Inject] constructor(val logger: Logger,
 
 }
 
-val DATA_VALUE_QUERY = DataQuery.of("UnsafeDamage")!!
+val dataValueQuery = DataQuery.of("UnsafeDamage")!!
 val ItemStack.data: Int
-    get() = this.toContainer().getInt(DATA_VALUE_QUERY).unwrap() ?: 0
+    get() = this.toContainer().getInt(dataValueQuery).unwrap() ?: 0
 
 fun ItemStack.withData(data: Int): ItemStack {
-    val container = this.toContainer().set(DATA_VALUE_QUERY, data)
+    val container = this.toContainer().set(dataValueQuery, data)
     return ItemStack { fromContainer(container) }
 }
 
-fun <T: Inventory> Inventory.query(variant: ItemVariant): T {
-    return queryAny(ItemStack.of(variant.type, 1).withData(variant.data))
+@Suppress("UNCHECKED_CAST")
+operator fun <T: Inventory> Inventory.get(variant: ItemVariant): T {
+    return this[ItemStack.of(variant.type, 1).withData(variant.data)] as T
 }
 
 fun debug(s: String) {
