@@ -40,7 +40,7 @@ class PieconomyPlayerAccount(val id: UUID) : PieconomyAccount, UniqueAccount {
 
     override fun getBalance(currency: Currency, contexts: Set<Context>): BigDecimal {
         val p = id.player() ?: return BigDecimal.ZERO
-        return p.storageInventory.get(config.items.filter { (_, value) -> value.currency == currency }
+        return p.storageInventory.get(*config.items.filter { (_, value) -> value.currency == currency }
                 .keys.map(ItemVariant::toItem).toTypedArray()).slots
                 .map { it.peek().get().let { config.items[it.type, it.data]!!.amount * BigDecimal(it.quantity) } }
                 .fold(BigDecimal.ZERO, BigDecimal::add)
@@ -101,7 +101,6 @@ class PieconomyPlayerAccount(val id: UUID) : PieconomyAccount, UniqueAccount {
         loop@for ((item, value) in items) {
             while (left >= value) {
                 val used = minOf(item.type.maxStackQuantity, left.divide(value, RoundingMode.DOWN).toInt())
-//                list += ItemStack.of(item, used)
                 val toInsert = ItemStack.of(item.type, used).withData(item.data)
                 val res = p.storageInventory.offer(toInsert)
                 toInsert.quantity = used - toInsert.quantity
