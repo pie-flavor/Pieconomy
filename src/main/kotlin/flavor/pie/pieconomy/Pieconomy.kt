@@ -17,6 +17,7 @@ import org.spongepowered.api.data.DataView
 import org.spongepowered.api.data.persistence.DataFormats
 import org.spongepowered.api.event.Listener
 import org.spongepowered.api.event.game.state.GameInitializationEvent
+import org.spongepowered.api.event.game.state.GamePostInitializationEvent
 import org.spongepowered.api.event.game.state.GameStoppingServerEvent
 import org.spongepowered.api.item.inventory.Inventory
 import org.spongepowered.api.item.inventory.ItemStack
@@ -47,6 +48,7 @@ class Pieconomy @[Inject] constructor(val logger: Logger,
 
     val accts = dir.resolve("server_accounts.dat")!!
     lateinit var config: Config
+    lateinit var svc: PieconomyService
 
     @[Listener]
     fun init(e: GameInitializationEvent) {
@@ -96,10 +98,13 @@ class Pieconomy @[Inject] constructor(val logger: Logger,
         }
         val mod = PieconomyCurrencyRegistryModule(set)
         GameRegistry.registerModule(Currency::class.java, mod)
-        val svc = PieconomyService()
+        svc = PieconomyService()
         ServiceManager.setProvider(this, EconomyService::class.java, svc)
-
         Commands.register()
+    }
+
+    @[Listener]
+    fun postInit(e: GamePostInitializationEvent) {
         if (config.serverAccounts.enable) {
             val data = if (Files.exists(accts)) Files.newInputStream(accts).use { DataFormats.NBT.readFrom(it) } else null
             for (acctEntry in config.serverAccounts.accounts) {
