@@ -113,9 +113,9 @@ class Pieconomy @[Inject] constructor(val logger: Logger,
                     val acctView = data.getView(DataQuery.of(acctEntry.id)).unwrap()
                     if (acctView != null) {
                         for (key in acctView.getKeys(false)) {
-                            val currency = GameRegistry.getType(Currency::class.java, key.asString(':')).get()
-                            val amount = BigDecimal(acctView.getString(key).get())
-                            acct.money[currency] = amount
+                            val currency = GameRegistry.getType(Currency::class.java, key.asString(':')).unwrap()
+                            val amount = acctView.getString(key).unwrap()?.let { BigDecimal(it) }
+                            currency?.let { acct.money[it] = amount ?: BigDecimal.ZERO }
                         }
                     }
                 }
@@ -129,6 +129,34 @@ class Pieconomy @[Inject] constructor(val logger: Logger,
                     acct.negativeValues = ImmutableList.copyOf(svc.currencies.filter { it !in acctEntry.negativeValues.values })
                 } else {
                     acct.negativeValues = ImmutableList.copyOf(svc.currencies.filter { it in acctEntry.negativeValues.values })
+                }
+            }
+            if (data != null && config.serverAccounts.dynamicAccounts.enable) {
+                val alreadyLoaded = config.serverAccounts.accounts.map { it.id }
+                for (acctKey in data.getKeys(false)) {
+                    val acctId = acctKey.asString(':')
+                    if (acctId !in alreadyLoaded) {
+                        val acct = PieconomyServerAccount(acctId)
+                        val acctView = data.getView(acctKey).unwrap()
+                        if (acctView != null) {
+                            for (key in acctView.getKeys(false)) {
+                                val currency = GameRegistry.getType(Currency::class.java, key.asString(':')).unwrap()
+                                val amount = acctView.getString(key).unwrap()?.let { BigDecimal(it) }
+                                currency?.let { acct.money[it] = amount ?: BigDecimal.ZERO }
+                            }
+                        }
+                        svc.serverAccounts[acctId] = acct
+                        if (config.serverAccounts.dynamicAccounts.currencies.type == ServerAccountCurrencyType.BLACKLIST) {
+                            acct.currencies = ImmutableList.copyOf(svc.currencies.filter { it !in config.serverAccounts.dynamicAccounts.currencies.values })
+                        } else {
+                            acct.currencies = ImmutableList.copyOf(svc.currencies.filter { it in config.serverAccounts.dynamicAccounts.currencies.values })
+                        }
+                        if (config.serverAccounts.dynamicAccounts.negativeValues.type == ServerAccountCurrencyType.BLACKLIST) {
+                            acct.negativeValues = ImmutableList.copyOf(svc.currencies.filter { it !in config.serverAccounts.dynamicAccounts.negativeValues.values })
+                        } else {
+                            acct.negativeValues = ImmutableList.copyOf(svc.currencies.filter { it in config.serverAccounts.dynamicAccounts.negativeValues.values })
+                        }
+                    }
                 }
             }
             if (config.serverAccounts.autosaveInterval > 0) {

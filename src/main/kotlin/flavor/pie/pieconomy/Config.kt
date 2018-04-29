@@ -51,6 +51,13 @@ operator fun Map<ItemVariant, ItemEntry>.get(type: ItemType, data: Int): ItemEnt
     @[Setting] var enable: Boolean = false
     @[Setting("autosave-interval")] var autosaveInterval: Long = 20
     @[Setting] var accounts: List<ServerAccountEntry> = emptyList()
+    @[Setting("dynamic-accounts")] var dynamicAccounts: DynamicAccountsSection = DynamicAccountsSection()
+}
+
+@[ConfigSerializable] class DynamicAccountsSection {
+    @[Setting] var enable: Boolean = false
+    @[Setting] var currencies: ServerAccountCurrencyEntry = ServerAccountCurrencyEntry().also { it.type = ServerAccountCurrencyType.BLACKLIST }
+    @[Setting("negative-values")] var negativeValues: ServerAccountCurrencyEntry = ServerAccountCurrencyEntry().also { it.type = ServerAccountCurrencyType.WHITELIST }
 }
 
 @[ConfigSerializable] class ServerAccountEntry {

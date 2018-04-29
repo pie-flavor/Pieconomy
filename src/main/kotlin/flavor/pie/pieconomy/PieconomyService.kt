@@ -2,6 +2,7 @@ package flavor.pie.pieconomy
 
 import com.github.benmanes.caffeine.cache.Caffeine
 import com.github.benmanes.caffeine.cache.LoadingCache
+import com.google.common.collect.ImmutableList
 import flavor.pie.kludge.*
 import org.spongepowered.api.service.context.ContextCalculator
 import org.spongepowered.api.service.economy.Currency
@@ -20,7 +21,23 @@ class PieconomyService : EconomyService {
 
     override fun getOrCreateAccount(uuid: UUID): Optional<UniqueAccount> = cache[uuid].optional
 
-    override fun getOrCreateAccount(identifier: String): Optional<Account> = serverAccounts.values.firstOrNull { it.name == identifier }.optional
+    override fun getOrCreateAccount(identifier: String): Optional<Account> =
+            (serverAccounts.values.firstOrNull { it.name == identifier } ?: if (config.serverAccounts.dynamicAccounts.enable) {
+                PieconomyServerAccount(identifier).apply {
+                    currencies = if (config.serverAccounts.dynamicAccounts.currencies.type == ServerAccountCurrencyType.BLACKLIST) {
+                        ImmutableList.copyOf(currencies.filter { it !in config.serverAccounts.dynamicAccounts.currencies.values })
+                    } else {
+                        ImmutableList.copyOf(currencies.filter { it in config.serverAccounts.dynamicAccounts.currencies.values })
+                    }
+                    negativeValues = if (config.serverAccounts.dynamicAccounts.negativeValues.type == ServerAccountCurrencyType.BLACKLIST) {
+                        ImmutableList.copyOf(currencies.filter { it !in config.serverAccounts.dynamicAccounts.negativeValues.values })
+                    } else {
+                        ImmutableList.copyOf(currencies.filter { it in config.serverAccounts.dynamicAccounts.negativeValues.values })
+                    }
+                }
+            } else {
+                null
+            }).optional
 
     override fun registerContextCalculator(calculator: ContextCalculator<Account>?) {}
 
