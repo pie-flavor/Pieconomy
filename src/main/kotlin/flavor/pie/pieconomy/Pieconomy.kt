@@ -19,8 +19,10 @@ import org.spongepowered.api.event.Listener
 import org.spongepowered.api.event.game.state.GameInitializationEvent
 import org.spongepowered.api.event.game.state.GamePostInitializationEvent
 import org.spongepowered.api.event.game.state.GameStoppingServerEvent
+import org.spongepowered.api.event.network.ClientConnectionEvent
 import org.spongepowered.api.item.inventory.Inventory
 import org.spongepowered.api.item.inventory.ItemStack
+import org.spongepowered.api.network.ChannelBinding
 import org.spongepowered.api.plugin.Plugin
 import org.spongepowered.api.service.economy.Currency
 import org.spongepowered.api.service.economy.EconomyService
@@ -30,12 +32,15 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.util.concurrent.TimeUnit
 
-@[Plugin(id = "pieconomy", name = "Pieconomy", version = "0.6.0-SNAPSHOT", authors = ["pie_flavor"],
-        description = "An economy plugin that uses items as currency")]
-class Pieconomy @[Inject] constructor(val logger: Logger,
-                                      @[DefaultConfig(sharedRoot = false)] val loader: ConfigurationLoader<CommentedConfigurationNode>,
-                                      @[DefaultConfig(sharedRoot = false)] val path: Path,
-                                      @[ConfigDir(sharedRoot = false)] val dir: Path,
+@[
+    Suppress("UNUSED_PARAMETER")
+    Plugin(id = "pieconomy", name = "Pieconomy", version = "0.6.0-SNAPSHOT", authors = ["pie_flavor"],
+        description = "An economy plugin that uses items as currency")
+]
+class Pieconomy @Inject constructor(val logger: Logger,
+                                      @DefaultConfig(sharedRoot = false) val loader: ConfigurationLoader<CommentedConfigurationNode>,
+                                      @DefaultConfig(sharedRoot = false) val path: Path,
+                                      @ConfigDir(sharedRoot = false) val dir: Path,
                                       val metrics: MetricsLite) {
 
     companion object {
@@ -49,8 +54,9 @@ class Pieconomy @[Inject] constructor(val logger: Logger,
     val accts = dir.resolve("server_accounts.dat")!!
     lateinit var config: Config
     lateinit var svc: PieconomyService
+    lateinit var channel: ChannelBinding.RawDataChannel
 
-    @[Listener]
+    @Listener
     fun init(e: GameInitializationEvent) {
         if (!Files.exists(path)) {
             AssetManager.getAsset(this, "default.conf").get().copyToFile(path)
@@ -101,14 +107,29 @@ class Pieconomy @[Inject] constructor(val logger: Logger,
         svc = PieconomyService()
         ServiceManager.setProvider(this, EconomyService::class.java, svc)
         Commands.register()
+        channel = ChannelRegistrar.createRawChannel(this, "pieconomy")
     }
 
-    @[Listener]
+    @Listener
     fun postInit(e: GamePostInitializationEvent) {
         if (config.serverAccounts.enable) {
             val data = if (Files.exists(accts)) Files.newInputStream(accts).use { DataFormats.NBT.readFrom(it) } else null
             for (acctEntry in config.serverAccounts.accounts) {
-                val acct = PieconomyServerAccount(acctEntry.name)
+                val currencies = ImmutableList.copyOf(svc.currencies.filter(
+                        if (acctEntry.currencies.type == ServerAccountCurrencyType.BLACKLIST) {
+                            { c -> c !in acctEntry.currencies.values }
+                        } else {
+                            { c -> c in acctEntry.currencies.values }
+                        }
+                ))
+                val negativeValues = ImmutableList.copyOf(svc.currencies.filter(
+                        if (acctEntry.negativeValues.type == ServerAccountCurrencyType.BLACKLIST) {
+                            { c -> c !in acctEntry.negativeValues.values }
+                        } else {
+                            { c -> c in acctEntry.negativeValues.values }
+                        }
+                ))
+                val acct = PieconomyServerAccount(acctEntry.name, currencies, negativeValues)
                 if (data != null) {
                     val acctView = data.getView(DataQuery.of(acctEntry.id)).unwrap()
                     if (acctView != null) {
@@ -120,23 +141,28 @@ class Pieconomy @[Inject] constructor(val logger: Logger,
                     }
                 }
                 svc.serverAccounts[acctEntry.id] = acct
-                if (acctEntry.currencies.type == ServerAccountCurrencyType.BLACKLIST) {
-                    acct.currencies = ImmutableList.copyOf(svc.currencies.filter { it !in acctEntry.currencies.values })
-                } else {
-                    acct.currencies = ImmutableList.copyOf(svc.currencies.filter { it in acctEntry.currencies.values })
-                }
-                if (acctEntry.negativeValues.type == ServerAccountCurrencyType.BLACKLIST) {
-                    acct.negativeValues = ImmutableList.copyOf(svc.currencies.filter { it !in acctEntry.negativeValues.values })
-                } else {
-                    acct.negativeValues = ImmutableList.copyOf(svc.currencies.filter { it in acctEntry.negativeValues.values })
-                }
+
             }
             if (data != null && config.serverAccounts.dynamicAccounts.enable) {
                 val alreadyLoaded = config.serverAccounts.accounts.map { it.id }
                 for (acctKey in data.getKeys(false)) {
                     val acctId = acctKey.asString(':')
                     if (acctId !in alreadyLoaded) {
-                        val acct = PieconomyServerAccount(acctId)
+                        val currencies = ImmutableList.copyOf(svc.currencies.filter(
+                                if (config.serverAccounts.dynamicAccounts.currencies.type == ServerAccountCurrencyType.BLACKLIST) {
+                                    { c -> c !in config.serverAccounts.dynamicAccounts.currencies.values }
+                                } else {
+                                    { c -> c in config.serverAccounts.dynamicAccounts.currencies.values }
+                                }
+                        ))
+                        val negativeValues = ImmutableList.copyOf(svc.currencies.filter(
+                                if (config.serverAccounts.dynamicAccounts.negativeValues.type == ServerAccountCurrencyType.BLACKLIST) {
+                                    { c -> c !in config.serverAccounts.dynamicAccounts.negativeValues.values }
+                                } else {
+                                    { c -> c in config.serverAccounts.dynamicAccounts.negativeValues.values }
+                                }
+                        ))
+                        val acct = PieconomyServerAccount(acctId, currencies, negativeValues)
                         val acctView = data.getView(acctKey).unwrap()
                         if (acctView != null) {
                             for (key in acctView.getKeys(false)) {
@@ -146,16 +172,6 @@ class Pieconomy @[Inject] constructor(val logger: Logger,
                             }
                         }
                         svc.serverAccounts[acctId] = acct
-                        if (config.serverAccounts.dynamicAccounts.currencies.type == ServerAccountCurrencyType.BLACKLIST) {
-                            acct.currencies = ImmutableList.copyOf(svc.currencies.filter { it !in config.serverAccounts.dynamicAccounts.currencies.values })
-                        } else {
-                            acct.currencies = ImmutableList.copyOf(svc.currencies.filter { it in config.serverAccounts.dynamicAccounts.currencies.values })
-                        }
-                        if (config.serverAccounts.dynamicAccounts.negativeValues.type == ServerAccountCurrencyType.BLACKLIST) {
-                            acct.negativeValues = ImmutableList.copyOf(svc.currencies.filter { it !in config.serverAccounts.dynamicAccounts.negativeValues.values })
-                        } else {
-                            acct.negativeValues = ImmutableList.copyOf(svc.currencies.filter { it in config.serverAccounts.dynamicAccounts.negativeValues.values })
-                        }
                     }
                 }
             }
@@ -170,17 +186,29 @@ class Pieconomy @[Inject] constructor(val logger: Logger,
         }
     }
 
-    @[Listener]
+    @Listener
     fun stop(e: GameStoppingServerEvent) {
         saveAccounts()
     }
 
+    @Listener
+    fun join(e: ClientConnectionEvent.Join) {
+        Task(this) {
+            delayTicks(1)
+            execute { ->
+                channel.sendTo(e.targetEntity) { buf ->
+                    buf.writeInteger(0)
+                    DeclareCurrenciesMessage(svc.currencies.mapNotNull { it as? PieconomyCurrency }).writeTo(buf)
+                }
+            }
+        }
+    }
+
     fun saveAccounts() {
-        Timings.ofStart(this, "Save Server Accounts").use {
+        Timings.ofStart(this, "Save Server Accounts").use { _ ->
             val data = DataContainer.createNew(DataView.SafetyMode.NO_DATA_CLONED)
             val svc: EconomyService by UncheckedService
-            svc as PieconomyService
-            for ((id, acct) in svc.serverAccounts) {
+            for ((id, acct) in (svc as PieconomyService).serverAccounts) {
                 val acctView = data.createView(DataQuery.of(id))
                 for ((currency, bal) in acct.money) {
                     acctView.set(DataQuery.of(currency.id), bal.toString())
@@ -192,7 +220,7 @@ class Pieconomy @[Inject] constructor(val logger: Logger,
 
 }
 
-val dataValueQuery = DataQuery.of("UnsafeDamage")!!
+val dataValueQuery: DataQuery = DataQuery.of("UnsafeDamage")
 val ItemStack.data: Int
     get() = this.toContainer().getInt(dataValueQuery).unwrap() ?: 0
 
@@ -208,4 +236,8 @@ operator fun <T: Inventory> Inventory.get(variant: ItemVariant): T {
 
 fun debug(s: String) {
     Pieconomy.instance.logger.debug(s)
+}
+
+inline fun test(x: () -> Unit) {
+    x()
 }

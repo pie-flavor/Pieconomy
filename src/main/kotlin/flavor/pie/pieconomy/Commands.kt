@@ -89,9 +89,21 @@ object Commands {
         CommandManager.register(Pieconomy.instance, transfer, "transfer")
         CommandManager.register(Pieconomy.instance, setbal, "setbal")
         CommandManager.register(Pieconomy.instance, exchange, "exchange")
+        test {
+            val t = CommandSpec {
+                executor { src, args ->
+                    src.sendMessage(!GameRegistry.getAllOf(Currency::class.java).joinToString())
+                    src.sendMessage(!"\"${config.defaultCurrencyStr}\"")
+                    src.sendMessage(!GameRegistry.getType(Currency::class.java, GameRegistry.getAllOf(Currency::class.java).first().id).unwrap().toString())
+                    src.sendMessage(!config.defaultCurrency.toString())
+                    CommandResult.success()
+                }
+            }
+            CommandManager.register(Pieconomy.instance, t, "test")
+        }
     }
 
-    @[Throws(CommandException::class)]
+    @Throws(CommandException::class)
     fun pay(src: CommandSource, args: CommandContext): CommandResult {
         if (src !is Player) throw CommandException(!"Must be a player!")
         val srcAcct = svc.getOrCreateAccount(src.uniqueId).get()
@@ -125,7 +137,7 @@ object Commands {
         }
     }
 
-    @[Throws(CommandException::class)]
+    @Throws(CommandException::class)
     fun bal(src: CommandSource, args: CommandContext): CommandResult {
         val currency = args.getOne<Currency>("currency").orElseGet { svc.defaultCurrency }
         var self = false
@@ -145,7 +157,7 @@ object Commands {
                 .build()
     }
 
-    @[Throws(CommandException::class)]
+    @Throws(CommandException::class)
     fun deposit(src: CommandSource, args: CommandContext): CommandResult {
         val currency = args.getOne<Currency>("currency").orElseGet { svc.defaultCurrency }
         val amount = args.getOne<BigDecimal>("amount").get()
@@ -174,7 +186,7 @@ object Commands {
         }
     }
 
-    @[Throws(CommandException::class)]
+    @Throws(CommandException::class)
     fun withdraw(src: CommandSource, args: CommandContext): CommandResult {
         val currency = args.getOne<Currency>("currency").orElseGet { svc.defaultCurrency }
         val amount = args.getOne<BigDecimal>("amount").get()
@@ -203,7 +215,7 @@ object Commands {
         }
     }
 
-    @[Throws(CommandException::class)]
+    @Throws(CommandException::class)
     fun transfer(src: CommandSource, args: CommandContext): CommandResult {
         val currency = args.getOne<Currency>("currency").orElseGet { svc.defaultCurrency }
         val amount = args.getOne<BigDecimal>("amount").get()
@@ -242,7 +254,7 @@ object Commands {
         }
     }
 
-    @[Throws(CommandException::class)]
+    @Throws(CommandException::class)
     fun setbal(src: CommandSource, args: CommandContext): CommandResult {
         val currency = args.getOne<Currency>("currency").orElseGet { svc.defaultCurrency }
         val amount = args.getOne<BigDecimal>("amount").get()
@@ -275,7 +287,7 @@ object Commands {
         }
     }
 
-    @[Throws(CommandException::class)]
+    @Throws(CommandException::class)
     fun exchange(src: CommandSource, args: CommandContext): CommandResult {
         if (src !is Player) {
             throw CommandException(!"You must be a player!")

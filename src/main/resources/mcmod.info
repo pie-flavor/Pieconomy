@@ -1,0 +1,20 @@
+[
+  {
+    "modid": "pieconomy_client",
+    "name": "Pieconomy Client",
+    "description": "Client-side functionality for Pieconomy. Shows item values in tooltips.",
+    "version": "1.0-SNAPSHOT",
+    "mcversion": "1.12.2",
+    "authorList": ["pie_flavor"]
+  },
+  {
+    "modid": "pieconomy",
+    "name": "Pieconomy",
+    "description": "An economy plugin that uses items as currency.",
+    "version": "0.6.0-SNAPSHOT",
+    "mcversion": "1.12.2",
+    "authorList": ["pie_flavor"],
+    "dependencies": ["spongeapi@7.0.0"],
+    "requiredMods": ["spongeapi@7.0.0"]
+  }
+]

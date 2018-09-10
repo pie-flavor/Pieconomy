@@ -23,18 +23,21 @@ class PieconomyService : EconomyService {
 
     override fun getOrCreateAccount(identifier: String): Optional<Account> =
             (serverAccounts.values.firstOrNull { it.name == identifier } ?: if (config.serverAccounts.dynamicAccounts.enable) {
-                PieconomyServerAccount(identifier).apply {
-                    currencies = if (config.serverAccounts.dynamicAccounts.currencies.type == ServerAccountCurrencyType.BLACKLIST) {
-                        ImmutableList.copyOf(currencies.filter { it !in config.serverAccounts.dynamicAccounts.currencies.values })
-                    } else {
-                        ImmutableList.copyOf(currencies.filter { it in config.serverAccounts.dynamicAccounts.currencies.values })
-                    }
-                    negativeValues = if (config.serverAccounts.dynamicAccounts.negativeValues.type == ServerAccountCurrencyType.BLACKLIST) {
-                        ImmutableList.copyOf(currencies.filter { it !in config.serverAccounts.dynamicAccounts.negativeValues.values })
-                    } else {
-                        ImmutableList.copyOf(currencies.filter { it in config.serverAccounts.dynamicAccounts.negativeValues.values })
-                    }
-                }
+                PieconomyServerAccount(identifier,
+                        currencies = ImmutableList.copyOf(currencies.filter(
+                                if (config.serverAccounts.dynamicAccounts.currencies.type == ServerAccountCurrencyType.BLACKLIST) {
+                                    { c -> c !in config.serverAccounts.dynamicAccounts.currencies.values }
+                                } else {
+                                    { c -> c in config.serverAccounts.dynamicAccounts.currencies.values }
+                                }
+                        )),
+                        negativeValues = ImmutableList.copyOf(currencies.filter(
+                                if (config.serverAccounts.dynamicAccounts.negativeValues.type == ServerAccountCurrencyType.BLACKLIST) {
+                                    { c -> c !in config.serverAccounts.dynamicAccounts.negativeValues.values }
+                                } else {
+                                    { c -> c in config.serverAccounts.dynamicAccounts.negativeValues.values }
+                                }
+                        )))
             } else {
                 null
             }).optional

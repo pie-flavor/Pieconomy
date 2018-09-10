@@ -13,63 +13,63 @@ import java.math.BigDecimal
 
 val config get() = Pieconomy.instance.config
 operator fun Map<ItemVariant, ItemEntry>.get(type: ItemType, data: Int): ItemEntry? = keys
-                .firstOrNull { it.type == type && (it.data == null || it.data == data) }
+                .firstOrNull { it.type == type && it.data == data }
                 ?.let { this[it] }
 
-@[ConfigSerializable] class Config {
+@ConfigSerializable class Config {
     companion object {
         val type: TypeToken<Config> = of(Config::class.java)
     }
-    @[Setting] var items: Map<ItemVariant, ItemEntry> = emptyMap()
-    @[Setting] var currencies: Map<String, CurrencyEntry> = emptyMap()
-    @[Setting("default-currency")] lateinit var defaultCurrencyStr: String
+    @Setting var items: Map<ItemVariant, ItemEntry> = emptyMap()
+    @Setting var currencies: Map<String, CurrencyEntry> = emptyMap()
+    @Setting("default-currency") lateinit var defaultCurrencyStr: String
     var defaultCurrency: Currency
         get() = GameRegistry.getType(Currency::class.java, defaultCurrencyStr).get()
         set(value) { defaultCurrencyStr = value.id }
-    @[Setting] var version: Int = 2
-    @[Setting("server-accounts")] var serverAccounts: ServerAccountSection = ServerAccountSection()
+    @Setting var version: Int = 2
+    @Setting("server-accounts") var serverAccounts: ServerAccountSection = ServerAccountSection()
 }
 
-@[ConfigSerializable] class ItemEntry {
-    @[Setting("currency")] private lateinit var currencyStr: String
+@ConfigSerializable class ItemEntry {
+    @Setting("currency") private lateinit var currencyStr: String
     var currency: Currency
         get() = GameRegistry.getType(Currency::class.java, currencyStr).get()
         set(value) { currencyStr = value.id }
-    @[Setting] var amount: BigDecimal = BigDecimal.ONE
+    @Setting var amount: BigDecimal = BigDecimal.ONE
 }
 
-@[ConfigSerializable] class CurrencyEntry {
-    @[Setting("decimal-places")] var decimalPlaces = 0
-    @[Setting] lateinit var name: Text
-    @[Setting] lateinit var plural: Text
-    @[Setting] lateinit var symbol: Text
-    @[Setting] lateinit var format: BetterTextTemplate
-    @[Setting] var exchangeable: Boolean = true
+@ConfigSerializable class CurrencyEntry {
+    @Setting("decimal-places") var decimalPlaces = 0
+    @Setting lateinit var name: Text
+    @Setting lateinit var plural: Text
+    @Setting lateinit var symbol: Text
+    @Setting lateinit var format: BetterTextTemplate
+    @Setting var exchangeable: Boolean = true
 }
 
-@[ConfigSerializable] class ServerAccountSection {
-    @[Setting] var enable: Boolean = false
-    @[Setting("autosave-interval")] var autosaveInterval: Long = 20
-    @[Setting] var accounts: List<ServerAccountEntry> = emptyList()
-    @[Setting("dynamic-accounts")] var dynamicAccounts: DynamicAccountsSection = DynamicAccountsSection()
+@ConfigSerializable class ServerAccountSection {
+    @Setting var enable: Boolean = false
+    @Setting("autosave-interval") var autosaveInterval: Long = 20
+    @Setting var accounts: List<ServerAccountEntry> = emptyList()
+    @Setting("dynamic-accounts") var dynamicAccounts: DynamicAccountsSection = DynamicAccountsSection()
 }
 
-@[ConfigSerializable] class DynamicAccountsSection {
-    @[Setting] var enable: Boolean = false
-    @[Setting] var currencies: ServerAccountCurrencyEntry = ServerAccountCurrencyEntry().also { it.type = ServerAccountCurrencyType.BLACKLIST }
-    @[Setting("negative-values")] var negativeValues: ServerAccountCurrencyEntry = ServerAccountCurrencyEntry().also { it.type = ServerAccountCurrencyType.WHITELIST }
+@ConfigSerializable class DynamicAccountsSection {
+    @Setting var enable: Boolean = false
+    @Setting var currencies: ServerAccountCurrencyEntry = ServerAccountCurrencyEntry().also { it.type = ServerAccountCurrencyType.BLACKLIST }
+    @Setting("negative-values") var negativeValues: ServerAccountCurrencyEntry = ServerAccountCurrencyEntry().also { it.type = ServerAccountCurrencyType.WHITELIST }
 }
 
-@[ConfigSerializable] class ServerAccountEntry {
-    @[Setting] lateinit var name: String
-    @[Setting] lateinit var id: String
-    @[Setting] var currencies: ServerAccountCurrencyEntry = ServerAccountCurrencyEntry().also { it.type = ServerAccountCurrencyType.BLACKLIST }
-    @[Setting("negative-values")] var negativeValues: ServerAccountCurrencyEntry = ServerAccountCurrencyEntry().also { it.type = ServerAccountCurrencyType.WHITELIST }
+@ConfigSerializable class ServerAccountEntry {
+    @Setting lateinit var name: String
+    @Setting lateinit var id: String
+    @Setting var currencies: ServerAccountCurrencyEntry = ServerAccountCurrencyEntry().also { it.type = ServerAccountCurrencyType.BLACKLIST }
+    @Setting("negative-values") var negativeValues: ServerAccountCurrencyEntry = ServerAccountCurrencyEntry().also { it.type = ServerAccountCurrencyType.WHITELIST }
 }
 
-@[ConfigSerializable] class ServerAccountCurrencyEntry {
-    @[Setting] lateinit var type: ServerAccountCurrencyType
-    @[Setting("values")] private var valueStrs: List<String> = emptyList()
+@ConfigSerializable class ServerAccountCurrencyEntry {
+    @Setting lateinit var type: ServerAccountCurrencyType
+    @Setting("values") private var valueStrs: List<String> = emptyList()
     var values: List<Currency>
         get() = valueStrs.map { GameRegistry.getType(Currency::class.java, it).get() }
         set(value) { valueStrs = value.map(CatalogType::getId) }

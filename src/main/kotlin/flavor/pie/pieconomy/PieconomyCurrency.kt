@@ -7,7 +7,7 @@ import java.math.BigDecimal
 import java.math.MathContext
 import java.math.RoundingMode
 
-class PieconomyCurrency(
+data class PieconomyCurrency(
         private val symbol: Text, val format: BetterTextTemplate, private val id: String,
         private val isDefault: Boolean, private val displayName: Text,
         private val defaultFractionDigits: Int, private val pluralDisplayName: Text,

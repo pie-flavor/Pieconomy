@@ -15,10 +15,9 @@ import org.spongepowered.api.service.economy.transaction.TransferResult
 import org.spongepowered.api.text.Text
 import java.math.BigDecimal
 
-class PieconomyServerAccount(val name: String) : PieconomyAccount, VirtualAccount {
+class PieconomyServerAccount(val name: String, val currencies: List<Currency>, val negativeValues: List<Currency>)
+    : PieconomyAccount, VirtualAccount {
     val money: MutableMap<Currency, BigDecimal> = HashMap()
-    lateinit var currencies: List<Currency>
-    lateinit var negativeValues: List<Currency>
     val svc: EconomyService by UncheckedService
     override fun hasBalance(currency: Currency, contexts: Set<Context>): Boolean = currency in money
 

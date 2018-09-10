@@ -5,6 +5,7 @@
 build/
 target/
 out/
+bin/
 .DS_Store
 Thumbs.db
 *.bak

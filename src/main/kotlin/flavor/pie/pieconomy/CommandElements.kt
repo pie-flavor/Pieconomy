@@ -25,12 +25,11 @@ class AccountElement(key: Text, val type: Type = Type.BOTH) : CommandElement(key
     override fun parseValue(source: CommandSource, args: CommandArgs): Any {
         val key = key!!
         val svc: EconomyService by UncheckedService
-        svc as PieconomyService
         when (type) {
             Type.BOTH -> {
                 if (args.peek().startsWith("server:", true)) {
                     val name = args.next().substring(7)
-                    return svc.serverAccounts.values.find { it.name == name } ?: throw args.createError(!"Invalid server account")
+                    return (svc as PieconomyService).serverAccounts.values.find { it.name == name } ?: throw args.createError(!"Invalid server account")
                 } else if (args.peek().startsWith("player:")) {
                     val name = args.next().substring(7)
                     args.insertArg(name)
@@ -46,7 +45,7 @@ class AccountElement(key: Text, val type: Type = Type.BOTH) : CommandElement(key
                 } catch (e: ArgumentParseException) {
                     args.state = state
                     val next = args.next()
-                    svc.serverAccounts.values.find { it.name == next } ?: throw args.createError(!"Invalid account name")
+                    (svc as PieconomyService).serverAccounts.values.find { it.name == next } ?: throw args.createError(!"Invalid account name")
                 }
             }
             Type.PLAYER -> {
@@ -62,20 +61,19 @@ class AccountElement(key: Text, val type: Type = Type.BOTH) : CommandElement(key
             }
             Type.SERVER -> {
                 val next = args.next().let { if (it.startsWith("server:")) it.substring(7) else it }
-                return svc.serverAccounts.values.find { it.name == next } ?: throw args.createError(!"Invalid server account")
+                return (svc as PieconomyService).serverAccounts.values.find { it.name == next } ?: throw args.createError(!"Invalid server account")
             }
         }
     }
 
     override fun complete(src: CommandSource, args: CommandArgs, context: CommandContext): List<String> {
         val svc: EconomyService by UncheckedService
-        svc as PieconomyService
         val next = args.nextIfPresent().orElse("")
         val builder = ImmutableList.builder<String>()
         if (type != Type.SERVER) {
             for (player in Server.onlinePlayers) {
                 if (next == "" || player.name.startsWith(next, ignoreCase = true)) {
-                    if (player.name in svc.serverAccounts.values.map { it.name }) {
+                    if (player.name in (svc as PieconomyService).serverAccounts.values.map { it.name }) {
                         builder.add("player:${player.name}")
                     } else {
                         builder.add(player.name)
@@ -86,7 +84,7 @@ class AccountElement(key: Text, val type: Type = Type.BOTH) : CommandElement(key
             }
         }
         if (type != Type.PLAYER) {
-            for (acct in svc.serverAccounts.values) {
+            for (acct in (svc as PieconomyService).serverAccounts.values) {
                 if (next == "" || acct.name.startsWith(next, ignoreCase = true)) {
                     if (acct.name in Server.onlinePlayers.map { it.name }) {
                         builder.add("server:${acct.name}")
