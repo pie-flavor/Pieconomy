@@ -1,3 +1,5 @@
+@file:Suppress("UNUSED_PARAMETER")
+
 package flavor.pie.pieconomy
 
 import co.aikar.timings.Timings
@@ -32,11 +34,8 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.util.concurrent.TimeUnit
 
-@[
-    Suppress("UNUSED_PARAMETER")
-    Plugin(id = "pieconomy", name = "Pieconomy", version = "0.6.0-SNAPSHOT", authors = ["pie_flavor"],
+@Plugin(id = "pieconomy", name = "Pieconomy", version = "0.6.0-SNAPSHOT", authors = ["pie_flavor"],
         description = "An economy plugin that uses items as currency")
-]
 class Pieconomy @Inject constructor(val logger: Logger,
                                       @DefaultConfig(sharedRoot = false) val loader: ConfigurationLoader<CommentedConfigurationNode>,
                                       @DefaultConfig(sharedRoot = false) val path: Path,
@@ -195,7 +194,7 @@ class Pieconomy @Inject constructor(val logger: Logger,
     fun join(e: ClientConnectionEvent.Join) {
         Task(this) {
             delayTicks(1)
-            execute { ->
+            execute { _ ->
                 channel.sendTo(e.targetEntity) { buf ->
                     buf.writeInteger(0)
                     DeclareCurrenciesMessage(svc.currencies.mapNotNull { it as? PieconomyCurrency }).writeTo(buf)
@@ -239,5 +238,5 @@ fun debug(s: String) {
 }
 
 inline fun test(x: () -> Unit) {
-    x()
+
 }

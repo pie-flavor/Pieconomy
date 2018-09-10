@@ -93,7 +93,7 @@ object Commands {
             val t = CommandSpec {
                 executor { src, args ->
                     src.sendMessage(!GameRegistry.getAllOf(Currency::class.java).joinToString())
-                    src.sendMessage(!"\"${config.defaultCurrencyStr}\"")
+                    src.sendMessage(!""""${config.defaultCurrencyStr}"""")
                     src.sendMessage(!GameRegistry.getType(Currency::class.java, GameRegistry.getAllOf(Currency::class.java).first().id).unwrap().toString())
                     src.sendMessage(!config.defaultCurrency.toString())
                     CommandResult.success()
