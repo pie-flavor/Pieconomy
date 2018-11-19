@@ -5,6 +5,8 @@ import flavor.pie.kludge.*
 import ninja.leaping.configurate.ConfigurationNode
 import ninja.leaping.configurate.objectmapping.ObjectMappingException
 import ninja.leaping.configurate.objectmapping.serialize.TypeSerializer
+import org.checkerframework.checker.nullness.qual.NonNull
+import org.checkerframework.checker.nullness.qual.Nullable
 import org.spongepowered.api.CatalogTypes
 import org.spongepowered.api.item.ItemType
 import org.spongepowered.api.item.inventory.ItemStack
@@ -14,26 +16,30 @@ import org.spongepowered.api.util.TypeTokens
 import java.math.BigDecimal
 
 object BigDecimalSerializer : TypeSerializer<BigDecimal> {
-    override fun serialize(type: TypeToken<*>, obj: BigDecimal, value: ConfigurationNode) {
-        value.value = obj.toPlainString()
+    override fun serialize(type: @NonNull TypeToken<*>, obj: @Nullable BigDecimal?, value: @NonNull ConfigurationNode) {
+        value.value = obj!!.toPlainString()
     }
 
     override fun deserialize(type: TypeToken<*>, value: ConfigurationNode): BigDecimal {
-        return BigDecimal(value.string)
+        return BigDecimal(value.string!!)
     }
 }
 
 object ItemVariantSerializer : TypeSerializer<ItemVariant> {
     override fun deserialize(type: TypeToken<*>, value: ConfigurationNode): ItemVariant {
         try {
-            return ItemVariant.fromString(value.string)
+            return ItemVariant.fromString(value.string!!)
         } catch (e: IllegalArgumentException) {
             throw ObjectMappingException(e)
         }
     }
 
-    override fun serialize(type: TypeToken<*>, obj: ItemVariant, value: ConfigurationNode) {
-        value.value = obj.toString()
+    override fun serialize(
+        type: @NonNull TypeToken<*>,
+        obj: @Nullable ItemVariant?,
+        value: @NonNull ConfigurationNode
+    ) {
+        value.value = obj!!.toString()
     }
 
 }
@@ -60,11 +66,15 @@ data class ItemVariant(val type: ItemType, val data: Int) {
 
 object BetterTextTemplateSerializer : TypeSerializer<BetterTextTemplate> {
     override fun deserialize(type: TypeToken<*>, value: ConfigurationNode): BetterTextTemplate {
-        return BetterTextTemplate(value.getValue(TypeTokens.TEXT_TOKEN))
+        return BetterTextTemplate(value.getValue(TypeTokens.TEXT_TOKEN)!!)
     }
 
-    override fun serialize(type: TypeToken<*>, obj: BetterTextTemplate, value: ConfigurationNode) {
-        value.setValue(TypeTokens.TEXT_TOKEN, obj.template)
+    override fun serialize(
+        type: @NonNull TypeToken<*>,
+        obj: @Nullable BetterTextTemplate?,
+        value: @NonNull ConfigurationNode
+    ) {
+        value.setValue(TypeTokens.TEXT_TOKEN, obj!!.template)
     }
 }
 

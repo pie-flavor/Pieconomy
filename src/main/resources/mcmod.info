@@ -14,7 +14,7 @@
     "version": "0.6.0-SNAPSHOT",
     "mcversion": "1.12.2",
     "authorList": ["pie_flavor"],
-    "dependencies": ["spongeapi@7.0.0"],
-    "requiredMods": ["spongeapi@7.0.0"]
+    "dependencies": ["spongeapi@7.1.0"],
+    "requiredMods": ["spongeapi@7.1.0"]
   }
 ]

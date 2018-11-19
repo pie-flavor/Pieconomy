@@ -9,7 +9,7 @@ import com.google.inject.Inject
 import flavor.pie.kludge.*
 import ninja.leaping.configurate.commented.CommentedConfigurationNode
 import ninja.leaping.configurate.loader.ConfigurationLoader
-import org.bstats.MetricsLite
+import org.bstats.sponge.MetricsLite2
 import org.slf4j.Logger
 import org.spongepowered.api.config.ConfigDir
 import org.spongepowered.api.config.DefaultConfig
@@ -40,7 +40,7 @@ class Pieconomy @Inject constructor(val logger: Logger,
                                       @DefaultConfig(sharedRoot = false) val loader: ConfigurationLoader<CommentedConfigurationNode>,
                                       @DefaultConfig(sharedRoot = false) val path: Path,
                                       @ConfigDir(sharedRoot = false) val dir: Path,
-                                      val metrics: MetricsLite) {
+                                      val metrics: MetricsLite2) {
 
     companion object {
         lateinit var instance: Pieconomy
@@ -94,7 +94,7 @@ class Pieconomy @Inject constructor(val logger: Logger,
             node.getNode("version").value = 3
             loader.save(node)
         }
-        config = node.getValue(Config.type)
+        config = node.getValue(Config.type)!!
         val set: MutableSet<Currency> = HashSet()
         config.currencies.forEach { (id, value) ->
             set += PieconomyCurrency(id = id, displayName = value.name, pluralDisplayName = value.plural,
