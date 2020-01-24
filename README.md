@@ -139,10 +139,6 @@ server-accounts {
 version = 1
 ```
 
-### Upcoming features
-
-* ~~Caching offline players' balances and transactions, and finalizing them upon login.~~ Actually, this won't be feasible. Sorry.
-
 ### Changelog
 
 0.1.0: Initial release.  
